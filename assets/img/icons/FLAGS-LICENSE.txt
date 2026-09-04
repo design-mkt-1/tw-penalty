@@ -4,9 +4,14 @@ https://github.com/lipis/flag-icons - MIT licence, reproduced below.
 They are served from this repo rather than a CDN, for the same reason
 the fonts are: no visitor request reaches a third party.
 
-  flag-uz.svg  Uzbekistan   - language UZ
+  flag-ua.svg  Ukraine      - language UA, and the +380 prefix in the card
   flag-ru.svg  Russia       - language RU
   flag-gb.svg  United Kingdom - language EN
+
+  flag-uz.svg  Uzbekistan   - inherited from fs-penalty, whose languages were
+                             UZ/RU/EN. Still referenced by index.html and the
+                             uz locale in js/i18n.js; both go in Etapa 6 and
+                             this file goes with them.
 
 ----------------------------------------------------------------
 

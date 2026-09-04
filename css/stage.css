@@ -12,7 +12,7 @@ html, body {
   inset: 0;
   overflow: hidden;
   overscroll-behavior: none;
-  background: var(--ink-950);
+  background: var(--surface-sunken);
   color: var(--text);
   font-family: var(--font);
   touch-action: manipulation;
@@ -44,7 +44,7 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--ink-900);
+  background: var(--surface);
   isolation: isolate;
   container: stage / size;
 }

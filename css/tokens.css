@@ -1,49 +1,42 @@
-/* Design tokens — CARRIED OVER FROM fs-penalty, NOT YET TOP WIN.
-   The palette below is still FanSport's. Etapa 2 rewrites this file from the
-   Top Win brandbook (Figma mAJyDSaXdr9GO72b7FGvI8, Palette page 19:5312) and
-   swaps the display face to Russo One. Every other stylesheet already reads
-   through the semantic layer at the bottom, so only this file changes. */
+/* Top Win design tokens
+   Figma mAJyDSaXdr9GO72b7FGvI8 — Palette (19:5312), Typography (19:5583),
+   and the delivered screens: Registration Form 19:4559, Footer 19:3717. */
 
 /* ── Self-hosted type ──────────────────────────────────────────
-   Variable-weight woff2, one file per unicode subset, so an English page
-   never downloads the Cyrillic cut. Files and licence sit in assets/fonts/;
-   nothing is fetched from Google at runtime.
+   One family for the whole page. Roboto here is the variable font with BOTH
+   axes -- wght 100-900 and wdth 75-100 -- plus a real italic cut, which is
+   what the design actually asks for and what the files this repo started with
+   could not give: they carried wght only, no width axis and no italic.
 
-   Montserrat replaces Alan Sans as the display face. Alan Sans ships only
-   latin, latin-ext and arabic, so Russian had no glyphs at all. */
+   That matters because the card's promo headline is Roboto Condensed Black
+   Italic (Figma 19:4565 -- weight 900, wdth 75, italic). With the width axis
+   present that is this same family at font-stretch: 75%, not a second
+   download. "Roboto Condensed" is never named as its own family anywhere in
+   this stylesheet, and must not be: it is a coordinate, not a font.
 
-@font-face {
-  font-family: "Montserrat";
-  font-style: normal;
-  font-weight: 700 900;
-  font-display: swap;
-  src: url("../assets/fonts/montserrat-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
+   The brandbook prescribes Russo One for headlines, but no delivered screen
+   uses it -- it appears only on the brandbook's own pages. The screens are
+   the specification here, so Russo One is not shipped. Inter is likewise
+   absent: the designer set the card and footer UI text in it, the brandbook
+   says Roboto, and Roboto is what we follow. Neither is a font substitution
+   forced by a missing file -- Russo One and Roboto both resolve correctly in
+   the Figma file, so Inter was a deliberate choice we are deliberately not
+   carrying.
 
-@font-face {
-  font-family: "Montserrat";
-  font-style: normal;
-  font-weight: 700 900;
-  font-display: swap;
-  src: url("../assets/fonts/montserrat-latin-ext.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
-}
+   Six woff2, one per unicode subset per style, so a Ukrainian page never
+   downloads a face it cannot show and an all-roman page never touches the
+   italic cut. Nothing is fetched from Google at runtime. Licence: OFL.txt.
 
-@font-face {
-  font-family: "Montserrat";
-  font-style: normal;
-  font-weight: 700 900;
-  font-display: swap;
-  src: url("../assets/fonts/montserrat-cyrillic.woff2") format("woff2");
-  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
-}
+   Ukrainian coverage is verified, not assumed: і ї є ґ І Ї Є Ґ all live in
+   the cyrillic subsets, roman and italic both. Apostrophes do not -- the
+   cyrillic range stops short of them -- so a UA apostrophe is served from
+   the latin subset, which is preloaded regardless. */
 
 @font-face {
   font-family: "Roboto";
   font-style: normal;
-  font-weight: 400 900;
-  font-stretch: 100%;
+  font-weight: 100 900;
+  font-stretch: 75% 100%;
   font-display: swap;
   src: url("../assets/fonts/roboto-latin.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
@@ -52,8 +45,8 @@
 @font-face {
   font-family: "Roboto";
   font-style: normal;
-  font-weight: 400 900;
-  font-stretch: 100%;
+  font-weight: 100 900;
+  font-stretch: 75% 100%;
   font-display: swap;
   src: url("../assets/fonts/roboto-latin-ext.woff2") format("woff2");
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
@@ -62,88 +55,147 @@
 @font-face {
   font-family: "Roboto";
   font-style: normal;
-  font-weight: 400 900;
-  font-stretch: 100%;
+  font-weight: 100 900;
+  font-stretch: 75% 100%;
   font-display: swap;
   src: url("../assets/fonts/roboto-cyrillic.woff2") format("woff2");
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
 }
 
+@font-face {
+  font-family: "Roboto";
+  font-style: italic;
+  font-weight: 100 900;
+  font-stretch: 75% 100%;
+  font-display: swap;
+  src: url("../assets/fonts/roboto-latin-italic.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: italic;
+  font-weight: 100 900;
+  font-stretch: 75% 100%;
+  font-display: swap;
+  src: url("../assets/fonts/roboto-latin-ext-italic.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: italic;
+  font-weight: 100 900;
+  font-stretch: 75% 100%;
+  font-display: swap;
+  src: url("../assets/fonts/roboto-cyrillic-italic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
 :root {
-  /* The two ramps below are the brand palette in full. Most steps are not
-     referenced by any rule in css/ — only the ones the semantic layer picks up
-     and a handful used directly (--green-300/500, --purple-200, --ink-600…950).
-     They are kept deliberately, as the reference a new component picks from,
-     not because they are all live. Roughly 1.4 kB uncompressed, which is
-     nothing beside the page's images; the cost of losing them is a green
-     invented by hand rather than picked from here. That had already happened
-     twice: css/form.css carried --cta #30d158 and --promo #3dd629 alongside
-     this file's --accent #3fd62b, three greens that were not each other. All
-     three are --accent now, and the card reaches for it by name. */
+  /* ── Palette ──────────────────────────────────────────────────
+     Two hero colours, Orange Fire and Midnight Navy, plus supporting greys
+     and functional signals. The 500 of each ramp is the brandbook value,
+     verbatim; every other step is that value mixed with white (50-400) or
+     black (600-950) in sRGB at a fixed schedule -- 92/84/68/42/20% white,
+     16/34/52/70/84% black. Stated because it is reproducible: a new tint
+     is a mix, not a guess. This is the whole reason the ramps exist. At
+     fs-penalty three greens invented by hand -- #30d158, #3dd629, #3fd62b --
+     ended up in three stylesheets, all meant to be the same green.
 
-  /* ── Primary: Green Goblin ────────────────────────────────── */
-  --green-50:  #ecfce9;
-  --green-100: #d5f9ce;
-  --green-200: #aff3a3;
-  --green-300: #7ce96d;
-  --green-400: #3fd62b;   /* FS Color/Accent Green */
-  --green-500: #31c022;
-  --green-600: #219917;
-  --green-700: #1c7516;
-  --green-800: #1b5d17;
-  --green-900: #1a4f18;
-  --green-950: #082b08;
+     The brandbook is not self-consistent and the ramps do not paper over it:
+       - "BG SECONDARY" lists HEX #FF4500 next to RGB(243,244,245). The RGB is
+         right; the hex is a copy-paste of Orange Fire. Figma's card confirms
+         it -- input backgrounds there are #F3F4F5.
+       - "BG THIRD" is defined twice, as #DCDEEA on one page and #FFDACC on
+         the next. Both are kept below under names that say which is which,
+         so nobody has to pick one and be silently wrong. */
 
-  /* ── Secondary: Purple Lavander ───────────────────────────── */
-  --purple-50:  #f9f5ff;
-  --purple-100: #f1e7ff;
-  --purple-200: #e5d3ff;
-  --purple-300: #d1b1ff;
-  --purple-400: #b57fff;
-  --purple-500: #9a4ffe;
-  --purple-600: #822bf2;
-  --purple-700: #6f1bd5;
-  --purple-800: #601bae;
-  --purple-900: #4f178c;
-  --purple-950: #330368;
+  /* Orange Fire */
+  --orange-50:  #fff0eb;
+  --orange-100: #ffe1d6;
+  --orange-200: #ffc3ad;
+  --orange-300: #ff936b;
+  --orange-400: #ff6a33;
+  --orange-500: #ff4500;   /* brandbook: Orange Fire, RGB(255,69,0) */
+  --orange-600: #d63a00;
+  --orange-700: #a82e00;
+  --orange-800: #7a2100;
+  --orange-900: #4c1500;
+  --orange-950: #290b00;
 
-  /* ── Neutrals ─────────────────────────────────────────────── */
-  --ink-000: #ffffff;
-  --ink-100: #d6d6d8;
-  --ink-200: #a3a3a8;
-  --ink-300: #79797f;
-  --ink-600: #2a2a2e;
-  --ink-700: #1e1e21;
-  --ink-800: #161618;
-  --ink-900: #0b0b0d;
-  --ink-950: #050506;
+  /* Midnight Navy */
+  --navy-50:  #ededf4;
+  --navy-100: #dadae8;
+  --navy-200: #b5b5d1;
+  --navy-300: #7a7aac;
+  --navy-400: #47478d;
+  --navy-500: #191970;     /* brandbook: Midnight Navy, RGB(25,25,112) */
+  --navy-600: #15155e;
+  --navy-700: #10104a;
+  --navy-800: #0c0c36;
+  --navy-900: #080822;
+  --navy-950: #040412;
 
-  /* ── Semantic ─────────────────────────────────────────────── */
-  --accent:        var(--green-400);
-  --accent-press:  var(--green-500);
-  --accent-ink:    var(--ink-950);
-  --surface:       var(--ink-800);
-  --surface-raised:var(--ink-700);
-  --surface-field: var(--ink-600);
-  --text:          var(--ink-000);
-  --text-muted:    var(--ink-200);
-  --danger:        #ff4d4d;
+  /* Neutrals and backgrounds, all brandbook values */
+  --white:         #ffffff;   /* BG main */
+  --bg-secondary:  #f3f4f5;   /* RGB(243,244,245); see the hex note above */
+  --bg-third:      #dcdeea;   /* BG THIRD, palette page 1 */
+  --bg-peach:      #ffdacc;   /* BG THIRD, palette page 2 -- same name, other colour */
+  --bg-dark:       #1f1f1f;   /* BG DARK */
+  --stroke:        #e7e6e9;   /* Stroke colour */
+  --txt-main:      #2a2a2a;
+  --txt-secondary: #737b8c;
+
+  /* Functional signals */
+  --green: #00a75c;   /* success, and the T&C links in the card */
+  --red:   #e41e1e;
+
+  /* Delivered values that are not in the palette but are in the screens */
+  --footer-bg: #00002e;   /* Footer 19:3717 */
+  --footer-fg: #9ca3af;
+  --footer-brd:#22223b;
+
+  /* ── Semantic ─────────────────────────────────────────────────
+     What the rest of the stylesheets are allowed to ask for. Nothing outside
+     this file reaches for a ramp step by number; when it did, the colour
+     stopped tracking the brand and had to be chased down by hand later. */
+  --accent:        var(--orange-500);
+  --accent-press:  var(--orange-600);
+  --accent-ink:    var(--white);      /* the CTA sets white on orange */
+  --accent-soft:   var(--orange-300); /* tints of the accent, for gradients */
+  --second:        var(--navy-500);
+  --second-soft:   var(--navy-200);   /* legible on the navy glass plate */
+  --surface:       var(--navy-900);   /* the stage */
+  --surface-sunken:var(--navy-950);   /* the page behind it */
+  --surface-raised:var(--navy-800);
+  --surface-field: var(--bg-secondary);
+  --text:          var(--white);
+  --text-muted:    var(--txt-secondary);
+  --danger:        var(--red);
 
   /* Glass plate, brandbook guideline 011 */
   --glass-bg: linear-gradient(160deg, rgba(255,255,255,.13), rgba(255,255,255,.03));
   --glass-brd: rgba(255,255,255,.22);
   --glass-blur: 10px;
 
-  /* Colored glass plate (purple) */
-  --glass-purple-bg: linear-gradient(160deg, rgba(154,79,254,.34), rgba(80,20,150,.16));
-  --glass-purple-brd: rgba(181,127,255,.42);
+  /* Coloured glass plate. Navy where fs-penalty had purple: it is the second
+     hero colour, so the ×12 corners read as brand rather than as decoration. */
+  --glass-second-bg: linear-gradient(160deg, rgba(25,25,112,.42), rgba(8,8,34,.20));
+  --glass-second-brd: rgba(181,181,209,.42);
 
-  /* ── Type ─────────────────────────────────────────────────── */
-  --font: "Montserrat", system-ui, -apple-system, sans-serif;
-  --fw-semi: 600;   /* Roboto only; the Montserrat cut carries 700-900 */
+  /* ── Type ─────────────────────────────────────────────────────
+     One family, two axes. --font-stretch-tight is the condensed coordinate
+     the promo headline sits at; it is a token rather than a literal so the
+     headline and anything that has to match it cannot drift apart. */
+  --font: "Roboto", system-ui, -apple-system, sans-serif;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semi: 600;
   --fw-bold: 700;
   --fw-xbold: 800;
   --fw-black: 900;
+  --font-stretch-tight: 75%;
 
   /* ── Motion ─────────────────────────────────────── */
   /* The curve already used by js/animator.js and the card in form.css,
@@ -157,6 +209,6 @@
   --r-xl: 24px;
   --r-pill: 999px;
 
-  --glow-green: 0 0 24px rgba(63,214,43,.45);
-  --glow-purple: 0 0 28px rgba(154,79,254,.45);
+  --glow-accent: 0 0 24px rgba(255,69,0,.45);
+  --glow-second: 0 0 28px rgba(25,25,112,.55);
 }

@@ -69,7 +69,7 @@
 /* The green outline is the design's treatment for this trigger, and the label
    is white against it rather than green -- the outline already says which
    control it is, and a green label on a green outline says it twice. */
-.lang { border-color: #30d158; color: #fff; }
+.lang { border-color: var(--accent); color: #fff; }
 .lang__caret { width: 14px; height: 14px; }
 
 /* Press feedback. They are buttons; they were behaving like labels. The logo
@@ -473,15 +473,15 @@
 
 /* The two ×12 corners get the colored glass plate treatment. */
 .panel[data-mult="12"]::before {
-  border-color: var(--glass-purple-brd);
-  background: var(--glass-purple-bg);
+  border-color: var(--glass-second-brd);
+  background: var(--glass-second-bg);
 }
-.panel[data-mult="12"] span { color: var(--purple-200); }
+.panel[data-mult="12"] span { color: var(--second-soft); }
 
 @media (hover: hover) {
   .panel:hover::before {
     border-color: var(--accent);
-    box-shadow: var(--glow-green), 0 2px 10px rgba(0,0,0,.28) inset;
+    box-shadow: var(--glow-accent), 0 2px 10px rgba(0,0,0,.28) inset;
   }
 }
 
@@ -495,7 +495,7 @@
 
 .panel.is-armed::before {
   border-color: var(--accent);
-  box-shadow: var(--glow-green);
+  box-shadow: var(--glow-accent);
 }
 
 /* Panels stop responding while a shot is in flight. */
@@ -601,7 +601,7 @@
   border-radius: 50%;
   will-change: transform;
   background: url("../assets/img/ball.webp") center / 100% 100% no-repeat;
-  filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(63,214,43,.35));
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(255,69,0,.35));
   transition: filter .18s ease, scale 140ms var(--ease-out);
 }
 
@@ -612,7 +612,7 @@
 
 @media (hover: hover) {
   .ball:hover {
-    filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)) drop-shadow(0 0 26px rgba(63,214,43,.75));
+    filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)) drop-shadow(0 0 26px rgba(255,69,0,.75));
   }
 }
 
@@ -675,17 +675,24 @@
   background: linear-gradient(180deg, rgba(4,4,6,.86), rgba(4,4,6,.55) 62%, transparent);
 }
 
+/* The page has one headline treatment and this is it: black, condensed,
+   italic -- the same coordinate the card's 225% sits at (Figma 19:4565), so
+   the tagline and the offer read as one voice rather than two. The brandbook
+   would have said Russo One here, but Russo One appears in no delivered
+   screen and has no italic, and the design leans on the italic. */
 .tagline__text {
   font-weight: var(--fw-black);
+  font-stretch: var(--font-stretch-tight);
+  font-style: italic;
   font-size: clamp(20px, 7.8cqw, 46px);
   line-height: 1.06;
   letter-spacing: -.01em;
   text-transform: uppercase;
-  background: linear-gradient(180deg, #ffffff 40%, var(--green-300));
+  background: linear-gradient(180deg, #ffffff 40%, var(--accent-soft));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 2px 10px rgba(63,214,43,.30));
+  filter: drop-shadow(0 2px 10px rgba(255,69,0,.30));
 }
 
 /* The gradient above is painted through the glyphs, so the text colour has to
@@ -749,10 +756,10 @@
   padding: 12px 22px;
   border-radius: var(--r-pill);
   border: 1px solid var(--glass-brd);
-  background: var(--glass-purple-bg);
+  background: var(--glass-second-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: var(--glow-purple);
+  box-shadow: var(--glow-second);
   font-weight: var(--fw-xbold);
   font-size: clamp(14px, 4.4cqw, 24px);
   text-align: center;

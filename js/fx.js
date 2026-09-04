@@ -569,7 +569,7 @@
      upward fan, same Euler step with gravity and drag. It shares the loop
      and the canvas now instead of running a second one of each. */
 
-  var BURST_COLOURS = ['#3fd62b', '#7ce96d', '#9a4ffe', '#d1b1ff', '#ffffff'];
+  var BURST_COLOURS = ['#ff4500', '#ff936b', '#ffc3ad', '#b5b5d1', '#ffffff'];
 
   function burst(origin) {
     if (reduced()) return;
