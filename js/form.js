@@ -1,5 +1,6 @@
 /* Registration card behaviour. Client-side only: no request is ever sent.
-   Tab switch, per-tab validation, then the "Complete" state from the design.
+   Tab switch, per-field validation, then the "Registration complete" state
+   from the design.
 
    The card claims role="dialog" aria-modal="true" in the markup, so it has to
    behave like one: focus moves in on open, Tab stays inside, Escape closes,
@@ -13,21 +14,38 @@
   var DESTINATION = null;   // e.g. 'https://topwin.example/signup?utm=penalty'
 
   /* The card has never sent anything anywhere, and this is where it would.
-     SUBMIT receives what the visitor actually chose -- the contact, which tab
-     it came from, and the bonus -- and null leaves the behaviour exactly as it
-     was. IT replaces the body; nothing else in this file has to change.
+     SUBMIT receives what the visitor actually filled in -- the contact, which
+     tab it came from, and the password they chose -- and null leaves the
+     behaviour exactly as it was. IT replaces the body; nothing else in this
+     file has to change.
+
+     The password is in the payload because a registration hook without one is
+     useless, which also means this seam must point at the client's own
+     endpoint over TLS and nowhere else.
 
      It is called after the done screen is already up, and inside a try, so a
      hook that throws cannot strand the visitor on a form that has stopped
      responding. Same reason game.js catches around the shot sequence. */
-  var SUBMIT = null;   // e.g. function (data) { navigator.sendBeacon('/signup', JSON.stringify(data)); }
+  var SUBMIT = null;   // e.g. function (data) { fetch('/signup', {method:'POST', body: JSON.stringify(data)}); }
+
+  /* Ukrainian mobile numbers are nine digits behind +380, and the design
+     writes the prefix into the field as fixed text rather than offering a
+     country picker. */
+  var PHONE_DIGITS = 9;
+  var PHONE_PREFIX = '+380';
+
+  /* The design shows a twelve-character password and an error that reads
+     "too short" without saying what short is. Eight is the rule this file
+     applies; it is stated here rather than buried in the test below. */
+  var PASSWORD_MIN = 8;
 
   var FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),' +
                   'select:not([disabled]),textarea:not([disabled]),' +
                   '[tabindex]:not([tabindex="-1"])';
 
-  var sheet, card, stepForm, stepDone, tabs, phoneInput, emailInput, bonusSelect;
-  var mode = 'phone';
+  var sheet, card, stepForm, stepDone, tabs, phoneInput, emailInput,
+      passInput, agreeBox, eyeBtn;
+  var mode = 'email';
   var lastFocus = null;
   var closing = false;
 
@@ -42,10 +60,11 @@
       t.classList.toggle('is-active', on);
       t.setAttribute('aria-selected', String(on));
     });
-    ['phone', 'email'].forEach(function (name) {
+    ['email', 'phone'].forEach(function (name) {
       var f = field(name);
       f.hidden = name !== next;
       clearError(f);
+      f.classList.remove('is-valid');
     });
   }
 
@@ -71,15 +90,19 @@
     errTimers[e.id] = setTimeout(function () { e.hidden = true; }, ERR_OUT);
   }
 
-  function showError(f) {
+  /* `focus` is false for every field after the first: showing three errors
+     and focusing the last one would put the cursor at the bottom of the form
+     and read the wrong message out. */
+  function showError(f, focus) {
     f.classList.add('is-invalid');
+    f.classList.remove('is-valid');
     /* The red ring is only half the message. aria-invalid states it, and the
        focus move is what makes aria-describedby read the error out: nothing
        announces a message that arrives while focus sits on the dialog. */
     var input = f.querySelector('input');
     if (input) {
       input.setAttribute('aria-invalid', 'true');
-      input.focus({ preventScroll: true });
+      if (focus) input.focus({ preventScroll: true });
     }
     var e = f.querySelector('.err');
     if (!e) return;
@@ -88,48 +111,95 @@
     TWFx.next(function () { e.classList.add('is-shown'); });
   }
 
-  function validate() {
-    var f = field(mode);
-    var input = f.querySelector('input');
-    var value = input.value.trim();
-    var ok, out;
+  /* ── validation ───────────────────────────────────────────── */
+
+  /* Each of these returns the value to keep, or null. They do not touch the
+     DOM: the caller decides whether a failure is worth showing yet, which is
+     what lets the same tests drive both the submit path and the live green
+     border the success state (19:4635) asks for. */
+
+  function readContact() {
+    var value = (mode === 'phone' ? phoneInput : emailInput).value.trim();
 
     if (mode === 'phone') {
-      // Digits only once separators are stripped, 7 to 15 of them (E.164 range).
       var digits = value.replace(/[^\d]/g, '');
-      ok = digits.length >= 7 && digits.length <= 15 && !/[a-z]/i.test(value);
-      /* The +998 is fixed and put back on the done screen, so a number typed
-         with its country code has to lose it here or it is shown twice —
-         "+998 +998901234567". Strip only when nine digits are left: a national
-         number may itself begin 998, because 99 is a live mobile prefix. */
-      out = digits.length > 9 && digits.indexOf('998') === 0
-        ? digits.slice(3)
-        : digits;
-    } else {
-      ok = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(value);
-      out = value;
+
+      /* Three forms reach this field and all three are the same number:
+         931234567 as the design's placeholder asks for it, 0931234567 with
+         the trunk zero people type out of habit, and 380931234567 pasted
+         with the country code -- which has to lose it or the done screen
+         reads "+380 +380931234567".
+
+         Keyed on the total length rather than on the prefix, so a national
+         number that itself begins 380 is never mistaken for a country code:
+         at nine digits it is already the right length and nothing is cut. */
+      if (digits.length === 12 && digits.indexOf('380') === 0) digits = digits.slice(3);
+      else if (digits.length === 10 && digits.charAt(0) === '0') digits = digits.slice(1);
+
+      if (digits.length !== PHONE_DIGITS || /[a-z]/i.test(value)) return null;
+      // E.164, unspaced: this value is what the SUBMIT hook receives, and a
+      // hook wants the canonical number. The spacing is a display concern and
+      // lives in shown() below.
+      return PHONE_PREFIX + digits;
     }
 
-    if (ok) clearError(f); else showError(f);
-    return ok ? out : null;
+    return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(value) ? value : null;
+  }
+
+  /* The complete screen groups the number the way the design writes it,
+     "+380 93 123 4567", which is also how the placeholder groups it. */
+  function shown(contact) {
+    if (mode !== 'phone') return contact;
+    var d = contact.slice(PHONE_PREFIX.length);
+    return PHONE_PREFIX + ' ' + d.slice(0, 2) + ' ' + d.slice(2, 5) + ' ' + d.slice(5);
+  }
+
+  function readPassword() {
+    var value = passInput.value;
+    return value.length >= PASSWORD_MIN ? value : null;
+  }
+
+  /* The green border and tick of the success state, applied as the visitor
+     types. Only ever adds the valid mark -- turning a field red while
+     somebody is still halfway through typing into it is the one thing a live
+     check must not do. */
+  function mark(f, ok) {
+    f.classList.toggle('is-valid', !!ok);
+    if (ok) clearError(f);
   }
 
   function submit(ev) {
     ev.preventDefault();
-    var value = validate();
-    if (!value) return;
 
-    // Swap the key, not the text: a later language change re-renders from it.
-    var label = stepDone.querySelector('dt[data-label="account"]');
-    label.setAttribute('data-i18n', mode === 'phone' ? 'done.phone' : 'done.email');
-    TWI18n.apply(stepDone);
-    stepDone.querySelector('.done__id').textContent =
-      mode === 'phone' ? '+998 ' + value : value;
+    var contactField = field(mode);
+    var passField = field('password');
+    var contact = readContact();
+    var password = readPassword();
+    var first = true;
+
+    if (!contact) { showError(contactField, first); first = false; }
+    if (!password) { showError(passField, first); first = false; }
+
+    /* The design has no error state for the 18+ box -- it is drawn checked in
+       every screen -- so an unchecked one is marked and focused rather than
+       given a message this card has no words for. */
+    agreeBox.setAttribute('aria-invalid', String(!agreeBox.checked));
+    if (!agreeBox.checked) {
+      if (first) agreeBox.focus({ preventScroll: true });
+      return;
+    }
+
+    if (!contact || !password) return;
+
+    /* The design labels the row "Login" whichever tab was used, so unlike the
+       card this replaces there is no label to swap between phone and email. */
+    stepDone.querySelector('.done__id').textContent = shown(contact);
+    stepDone.querySelector('.done__pw').textContent = password;
 
     stepForm.hidden = true;
     stepDone.hidden = false;
-    // #promo-title lives inside the step just hidden, so the dialog would be
-    // left naming an element nobody can reach. Move the name with the step.
+    // #promo-title survives the step swap now -- the promo header sits outside
+    // both steps -- but the dialog should still be named by what it shows.
     card.setAttribute('aria-labelledby', 'done-title');
     card.scrollTop = 0;
     TWAudio.play('whistle', 0.5);
@@ -140,8 +210,8 @@
       try {
         SUBMIT({
           via: mode,
-          contact: mode === 'phone' ? '+998' + value : value,
-          bonus: bonusSelect.value,
+          contact: contact,
+          password: password,
           lang: document.documentElement.lang || null
         });
       } catch (err) {
@@ -150,10 +220,56 @@
     }
   }
 
+  /* ── password reveal ──────────────────────────────────────── */
+
+  function toggleEye() {
+    var shown = passInput.type === 'text';
+    passInput.type = shown ? 'password' : 'text';
+    eyeBtn.setAttribute('aria-pressed', String(!shown));
+    // Keep the caret where it was: changing type moves focus off the input in
+    // some browsers, and the visitor is mid-password.
+    passInput.focus({ preventScroll: true });
+  }
+
+  /* ── copy buttons ─────────────────────────────────────────── */
+
+  var copyTimer = 0;
+
+  function copy(btn) {
+    var target = stepDone.querySelector(btn.getAttribute('data-copy'));
+    if (!target) return;
+    var text = target.textContent;
+
+    /* clipboard.writeText needs a secure context and permission, and the
+       whole point of this button is that the visitor keeps their details --
+       so a refusal selects the text instead of failing silently. */
+    var done = function () {
+      btn.classList.add('is-copied');
+      clearTimeout(copyTimer);
+      copyTimer = setTimeout(function () {
+        btn.classList.remove('is-copied');
+      }, 1200);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { select(target); });
+    } else {
+      select(target);
+    }
+  }
+
+  function select(el) {
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
   /* ── focus containment ────────────────────────────────────── */
 
-  /* Only what is genuinely on screen: the email field is hidden while the
-     phone tab is active, and one of the two steps is always hidden. */
+  /* Only what is genuinely on screen: the phone field is hidden while the
+     email tab is active, and one of the two steps is always hidden. */
   function focusables() {
     return Array.prototype.filter.call(
       card.querySelectorAll(FOCUSABLE),
@@ -254,18 +370,25 @@
   }
 
   /* Back to the opening state, so a second visit does not start on the
-     success screen with the previous answer still sitting in the field. */
+     complete screen with the previous answers still sitting in the fields.
+     Every control the card owns is listed here: the one the card this
+     replaces forgot was the only one it had that this function did not
+     name. */
   function restore() {
     stepDone.hidden = true;
     stepForm.hidden = false;
     card.setAttribute('aria-labelledby', 'promo-title');
-    phoneInput.value = '';
     emailInput.value = '';
-    /* The select was the one control this function forgot, so a second visit
-       opened on whatever bonus the first one picked. selectedIndex, not
-       value: it restores the first option whatever the values become. */
-    bonusSelect.selectedIndex = 0;
-    setTab('phone');
+    phoneInput.value = '';
+    passInput.value = '';
+    passInput.type = 'password';
+    eyeBtn.setAttribute('aria-pressed', 'false');
+    // Checked is the design's default state, not merely the initial one.
+    agreeBox.checked = true;
+    agreeBox.removeAttribute('aria-invalid');
+    clearError(field('password'));
+    field('password').classList.remove('is-valid');
+    setTab('email');
     card.scrollTop = 0;
   }
 
@@ -282,18 +405,38 @@
     stepForm = card.querySelector('[data-step="form"]');
     stepDone = card.querySelector('[data-step="done"]');
     tabs     = Array.prototype.slice.call(card.querySelectorAll('.tab'));
-    phoneInput = card.querySelector('#tw-phone');
     emailInput = card.querySelector('#tw-email');
-    bonusSelect = card.querySelector('#tw-bonus');
+    phoneInput = card.querySelector('#tw-phone');
+    passInput  = card.querySelector('#tw-pass');
+    agreeBox   = card.querySelector('#tw-agree');
+    eyeBtn     = card.querySelector('.eye');
 
     tabs.forEach(function (t) {
       t.addEventListener('click', function () { setTab(t.dataset.tab); });
     });
 
-    [phoneInput, emailInput].forEach(function (input) {
+    [emailInput, phoneInput].forEach(function (input) {
       input.addEventListener('input', function () {
-        clearError(input.closest('.field'));
+        var f = input.closest('.field');
+        clearError(f);
+        mark(f, readContact());
       });
+    });
+
+    passInput.addEventListener('input', function () {
+      var f = passInput.closest('.field');
+      clearError(f);
+      mark(f, readPassword());
+    });
+
+    agreeBox.addEventListener('change', function () {
+      if (agreeBox.checked) agreeBox.removeAttribute('aria-invalid');
+    });
+
+    eyeBtn.addEventListener('click', toggleEye);
+
+    Array.prototype.forEach.call(card.querySelectorAll('.copy'), function (btn) {
+      btn.addEventListener('click', function () { copy(btn); });
     });
 
     card.addEventListener('submit', submit);

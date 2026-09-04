@@ -122,51 +122,36 @@
     <canvas class="fx" aria-hidden="true"></canvas>
 
     <!-- ── registration overlay ───────────────────────────────── -->
-    <!-- Figma mAJyDSaXdr9GO72b7FGvI8 · Registration Card 1:2823
-         Device=Mobile, Tab=Phone/Email, State=Default/Error/Complete, with offer -->
+    <!-- Figma mAJyDSaXdr9GO72b7FGvI8 · page 19:2893. Default 19:4559 mobile /
+         19:4675 desktop, error 19:4596, success 19:4635, phone tab 19:4431,
+         registration complete 19:4827. -->
     <div class="sheet" hidden aria-hidden="true">
       <form class="card" role="dialog" aria-modal="true" aria-labelledby="promo-title"
             tabindex="-1" novalidate>
 
-        <div class="card__step" data-step="form">
-          <header class="promo" id="promo-title">
-            <div class="promo__row">
-              <span class="promo__pct">200%</span>
-              <span class="promo__stack"><span data-i18n="promo.sport">sport</span><span data-i18n="promo.bonus">bonus</span></span>
+        <!-- Outside the steps: the design keeps the whole promo block on the
+             complete screen (19:4830) and replaces only what is under it. -->
+        <header class="promo">
+          <img class="promo__logo" src="assets/img/logo-topwin.svg" alt="Top Win" width="101" height="18">
+          <div class="promo__head">
+            <h2 class="promo__title" id="promo-title" data-i18n="promo.title">Welcome sports bonus</h2>
+            <div class="promo__offer">
+              <p class="promo__pct" data-i18n="promo.pct">225%</p>
+              <p class="promo__sub" data-i18n="promo.amount">up to 15000 UAH</p>
             </div>
-            <!-- (AMOUNT) is a campaign placeholder, as in the source design. -->
-            <p class="promo__sub" data-i18n="promo.sub">or up to (AMOUNT) + 150 FS</p>
-          </header>
+          </div>
+        </header>
 
+        <div class="card__step" data-step="form">
           <div class="tabs" role="tablist" data-i18n-attr="aria-label:tabs.label">
-            <button class="tab is-active" type="button" role="tab" data-tab="phone" aria-selected="true">
-              <img class="tab__icon" src="assets/img/icons/phone.svg" alt="" width="16" height="16">
-              <span data-i18n="tab.phone">PHONE</span>
-            </button>
-            <button class="tab" type="button" role="tab" data-tab="email" aria-selected="false">
-              <img class="tab__icon" src="assets/img/icons/email.svg" alt="" width="16" height="16">
-              <span data-i18n="tab.email">EMAIL</span>
-            </button>
+            <button class="tab is-active" type="button" role="tab" data-tab="email"
+                    aria-selected="true" data-i18n="tab.email">EMAIL</button>
+            <button class="tab" type="button" role="tab" data-tab="phone"
+                    aria-selected="false" data-i18n="tab.phone">PHONE</button>
           </div>
 
           <div class="fields">
-            <div class="field" data-for="phone">
-              <div class="row">
-                <button class="country" type="button" data-i18n-attr="aria-label:field.country">
-                  <span class="country__flag">
-                    <img src="assets/img/icons/flag-uz.svg" alt="" width="26" height="20">
-                  </span>
-                  <img class="country__caret" src="assets/img/icons/chevron-sm.svg" alt="" width="10" height="6">
-                </button>
-                <div class="input">
-                  <input id="tw-phone" type="tel" inputmode="tel" autocomplete="tel"
-                         data-i18n-attr="placeholder:field.phone" aria-describedby="tw-phone-err">
-                </div>
-              </div>
-              <p class="err" id="tw-phone-err" data-i18n="err.phone" hidden>Invalid phone number</p>
-            </div>
-
-            <div class="field" data-for="email" hidden>
+            <div class="field" data-for="email">
               <div class="input">
                 <input id="tw-email" type="email" inputmode="email" autocomplete="email"
                        data-i18n-attr="placeholder:field.email" aria-describedby="tw-email-err">
@@ -174,47 +159,99 @@
               <p class="err" id="tw-email-err" data-i18n="err.email" hidden>Invalid email address</p>
             </div>
 
-            <div class="field">
-              <label class="label" for="tw-bonus" data-i18n="field.bonus">Select bonus</label>
-              <div class="select">
-                <img class="select__icon" src="assets/img/icons/gift.svg" alt="" width="20" height="20">
-                <!-- The values are what js/form.js reads, and they are stable
-                     across locales. Without them a select falls back to its
-                     option's text, so the answer would have been "Casino
-                     bonus" in English and "Казино бонус" in Russian. -->
-                <select id="tw-bonus">
-                  <option value="casino" data-i18n="bonus.casino">Casino bonus</option>
-                  <option value="sport" data-i18n="bonus.sport">Sport bonus</option>
-                  <option value="none" data-i18n="bonus.none">No bonus</option>
-                </select>
-                <img class="select__caret" src="assets/img/icons/chevron.svg" alt="" width="12" height="8">
+            <div class="field" data-for="phone" hidden>
+              <!-- +380 is fixed text, not a country picker: the offer is
+                   Ukraine-only and the design writes the prefix into the
+                   field. The flag is the flag-icons SVG the language menu
+                   already carries; the design draws the emoji, which renders
+                   as the letters UA on Windows. -->
+              <div class="input input--phone">
+                <img class="input__flag" src="assets/img/icons/flag-ua.svg" alt="" width="24" height="18">
+                <span class="input__prefix">+380</span>
+                <input id="tw-phone" type="tel" inputmode="tel" autocomplete="tel"
+                       data-i18n-attr="placeholder:field.phone" aria-describedby="tw-phone-err">
               </div>
+              <p class="err" id="tw-phone-err" data-i18n="err.phone" hidden>Invalid phone number</p>
+            </div>
+
+            <div class="field" data-for="password">
+              <label class="label" for="tw-pass" data-i18n="field.password">Password</label>
+              <div class="input">
+                <input id="tw-pass" type="password" autocomplete="new-password"
+                       data-i18n-attr="placeholder:field.passwordHint" aria-describedby="tw-pass-err">
+                <button class="eye" type="button" aria-pressed="false"
+                        data-i18n-attr="aria-label:field.reveal">
+                  <img src="assets/img/icons/eye.svg" alt="" width="20" height="20">
+                </button>
+                <span class="ok" aria-hidden="true">
+                  <img src="assets/img/icons/check.svg" alt="" width="10" height="10">
+                </span>
+              </div>
+              <p class="err" id="tw-pass-err" data-i18n="err.password" hidden>Password is too short</p>
             </div>
           </div>
 
+          <!-- The sentence is deliberately not a <label for>: it carries two
+               links, and a click on either would toggle the box on its way to
+               the anchor. The box names itself and points at the sentence. -->
+          <div class="agree">
+            <input class="agree__box" id="tw-agree" type="checkbox" checked
+                   aria-describedby="tw-agree-text"
+                   data-i18n-attr="aria-label:agree.aria">
+            <p class="agree__text" id="tw-agree-text"><span
+              data-i18n="agree.pre">I am 18 years old and I accept the </span><a
+              data-i18n="agree.terms">Terms of Use</a><span
+              data-i18n="agree.mid"> and the </span><a
+              data-i18n="agree.privacy">Privacy Policy</a><span
+              data-i18n="agree.post">.</span></p>
+          </div>
+
           <div class="actions">
-            <button class="cta" type="submit" data-i18n="cta.continue">CONTINUE</button>
+            <button class="cta" type="submit" data-i18n="cta.register">REGISTER</button>
             <!-- No href on purpose: LOGIN_URL in js/main.js. See the logo. -->
             <p class="foot"><span data-i18n="foot.have">Already have an account?</span> <a data-i18n="foot.login">Log in</a></p>
           </div>
         </div>
 
         <div class="card__step" data-step="done" hidden>
-          <svg class="done__tick" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-            <circle cx="32" cy="32" r="27"/>
-            <path d="M20 33.5L28.5 42L45 22"/>
-          </svg>
-          <div class="done__head">
-            <h2 class="done__title" id="done-title" data-i18n="done.title">Registration Successful!</h2>
-            <p class="done__sub" data-i18n="done.sub">Your secure account has been created.</p>
-          </div>
-          <dl class="done__box">
-            <dt data-label="account" data-i18n="done.phone">ACCOUNT PHONE</dt>
-            <dd class="done__id"></dd>
-            <dt data-i18n="done.password">PASSWORD</dt>
-            <dd class="done__pw">••••••••</dd>
+          <hr class="rule">
+          <h2 class="done__title" id="done-title" data-i18n="done.title">Registration successful!</h2>
+          <dl class="creds">
+            <div class="cred">
+              <dt data-i18n="done.login">Login:</dt>
+              <dd class="done__id"></dd>
+              <button class="copy" type="button" data-copy=".done__id"
+                      data-i18n-attr="aria-label:done.copy">
+                <!-- 19:4845: two 10.8x12.6 rounded rectangles at 1.2 stroke,
+                     the front one offset 4.5 and filled so the back reads as
+                     a second sheet. Shifted half a stroke off the edges so
+                     neither is clipped by the 18px box. -->
+                <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
+                  <rect x="5.1" y="0.6" width="10.8" height="12.6" rx="1.5"
+                        stroke="currentColor" stroke-width="1.2"/>
+                  <rect x="0.6" y="5.1" width="10.8" height="12.6" rx="1.5"
+                        fill="#fff" stroke="currentColor" stroke-width="1.2"/>
+                </svg>
+              </button>
+            </div>
+            <div class="cred">
+              <dt data-i18n="done.password">Password:</dt>
+              <dd class="done__pw"></dd>
+              <button class="copy" type="button" data-copy=".done__pw"
+                      data-i18n-attr="aria-label:done.copy">
+                <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
+                  <rect x="5.1" y="0.6" width="10.8" height="12.6" rx="1.5"
+                        stroke="currentColor" stroke-width="1.2"/>
+                  <rect x="0.6" y="5.1" width="10.8" height="12.6" rx="1.5"
+                        fill="#fff" stroke="currentColor" stroke-width="1.2"/>
+                </svg>
+              </button>
+            </div>
           </dl>
-          <button class="cta" type="button" data-action="close" data-i18n="cta.website">GO TO WEBSITE</button>
+          <div class="actions">
+            <button class="cta" type="button" data-action="close" data-i18n="cta.website">GO TO WEBSITE</button>
+            <p class="done__note" data-i18n="done.note">Save your login details</p>
+          </div>
         </div>
 
       </form>

@@ -1,33 +1,50 @@
-/* Registration card — Figma mAJyDSaXdr9GO72b7FGvI8, node 1:2823.
-   The greys, the ink and the error red below are the design's own and stay
-   card-scoped: the card runs Roboto against the page's Montserrat and its own
-   surface greys, so they have no business in tokens.css.
+/* Registration card — Figma mAJyDSaXdr9GO72b7FGvI8, page 19:2893.
 
-   The green does not stay. This file used to carry two of its own -- --cta
-   #30d158 on the button, the tabs, the focus rings and the tick, and --promo
-   #3dd629 on the offer line -- against --accent #3fd62b on the page. Three
-   greens a hand's breadth apart is a thing nobody chose; it is what happens
-   when a card is built from its own Figma node. Both are --accent now.
-   Measured before swapping, every use site holds or improves: black on the
-   button goes 9.55:1 to 9.99:1, black on an active tab 10.39 to 10.87, and
-   the offer line is within a thousandth of its old luminance. */
+   Mobile 19:4559 (360 wide) and desktop 19:4675 (504 wide), each read from its
+   own node rather than one scaled from the other: the desktop card is not a
+   larger mobile card. Its padding goes 24 -> 36, its logo 101x18 -> 247x44 and
+   its promo type 16/84/34 -> 24/100/44, while the tabs, the fields, the
+   checkbox and the button keep their mobile sizes exactly. Only the parts the
+   design actually changes are in the query below.
 
-.card {
-  --card-bg:   rgba(18,18,20,.5);
-  --card-brd:  #3a3a3c;
-  --field:     #2c2c2e;
-  --muted:     #9a9aa0;   /* 5.0:1 on --field; #8e8e93 was 4.3:1 */
-  --cta-ink:   #0e0e0e;
-  --foot:      #aeaeb2;
-  --err:       #ff453a;
-}
+   The error and success states are 19:4596 and 19:4635; the phone tab is
+   19:4431, which is the same eight screens drawn with the other tab active
+   rather than an older revision. Registration complete is 19:4827.
+
+   This is a white card on a dark page, so unlike the one it replaces it takes
+   its colours from tokens.css rather than carrying a private palette: the
+   design's greys ARE the brandbook's (#f3f4f5 is --bg-secondary, #e7e6e9 is
+   --stroke, #2a2a2a is --txt-main, #737b8c is --txt-secondary).
+
+   Three colours in the design are not in the brandbook, and are routed to the
+   token rather than copied in, for the same reason the ramps exist:
+     - the 18+ checkbox fills #43a047 while the links beside it use #00a75c,
+       the brandbook green. One green, --green.
+     - the error border is #e74f4f on the email field and #e53935 on the
+       password field in the same screenshot. One red, --danger.
+     - "до 15000 UAH" is #171671 against the #191970 navy of the line above it.
+       One navy, --second.
+   If any of the three is later confirmed as deliberate, it wants a name in
+   tokens.css, not a literal here. */
 
 /* ── overlay ──────────────────────────────────────────────── */
 
+/* The query container for the card's two geometries is the sheet, not the card.
+   Two reasons, and both are fatal to putting it on the card itself: an element
+   cannot be styled by its own container query, so `.card { padding: 36px }`
+   would never apply; and a container is measured by its CONTENT box, so a
+   504px card with 24px of padding queries as 454 and a 480px threshold never
+   matches at all. Measured in the browser, not reasoned about afterwards.
+
+   The sheet's content box is what the card's `min(504px, 100%)` resolves
+   against, so "the sheet has 504 to give" and "the card is at its full
+   width" are the same condition, and the cqw units below stay meaningful:
+   below the threshold the two boxes are the same width. */
 .sheet {
   position: absolute;
   inset: 0;
   z-index: 50;
+  container: card / inline-size;
   display: grid;
   place-items: center;
   padding: 16px 12px;
@@ -50,19 +67,22 @@
      takes its width from this rule and a percentage max-width then resolves
      against the column the card itself created. At 320px that left 57px of the
      card outside the screen, on a page that cannot scroll to reach it. */
-  width: min(365px, 100%);
+  width: min(504px, 100%);
   max-height: 100%;
   /* The page never scrolls; if the soft keyboard squeezes the stage the
      card scrolls inside itself instead. */
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 12px 0 16px;
-  border: 1px solid var(--card-brd);
-  border-radius: 24px;
-  background: var(--card-bg);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  font-family: "Roboto", system-ui, -apple-system, sans-serif;
+
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-xl);
+  background: var(--white);
+  box-shadow: 0 12px 12px rgba(25,25,112,.08);
+  font-family: var(--font);
   transform: translateY(14px) scale(.98);
   transition: transform 180ms var(--ease-out);
 }
@@ -72,181 +92,203 @@
 .card .card__step {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 12px 16px;
+  gap: 24px;
 }
 
-/* ── promo header ─────────────────────────────────────────── */
+/* ── promo header ─────────────────────────────────────────────
+   Outside .card__step: the design keeps the whole promo block on the
+   registration-complete screen (19:4830), so it is not part of the form step
+   that gets swapped out. */
 
-.card .promo { text-align: center; text-transform: uppercase; }
-
-.card .promo__row {
+.card .promo {
   display: flex;
-  gap: 4px;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-weight: 900;
+  gap: 16px;
+  text-align: center;
 }
 
-/* The card's type is fluid against #stage, the nearest query container. Each
-   cqw figure is the design value over the 390px stage it was drawn on — 76/390
-   is 19.5cqw — so a 390 phone still renders the design exactly and anything
-   narrower shrinks with it. The cqh half only binds in landscape, where the
-   card scrolls inside itself and a 76px numeral costs a field. */
-.card .promo__pct {
-  font-size: clamp(56px, min(19.5cqw, 17cqh), 76px);
-  line-height: 1.05;
-}
+.card .promo__logo { width: 101px; height: 18px; }
 
-.card .promo__stack {
+.card .promo__head {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  font-size: clamp(23px, min(7.7cqw, 7cqh), 30px);
+  width: 100%;
+}
+
+/* The numerals and the amount are one group under the title. Flush on mobile,
+   14 apart on desktop -- the only gap the two nodes disagree about. */
+.card .promo__offer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+}
+
+/* One family, one coordinate: Roboto at wdth 75, weight 900, italic. Named
+   through the token so the three lines cannot drift apart from each other or
+   from the rest of the page. */
+.card .promo__title,
+.card .promo__pct,
+.card .promo__sub {
+  font-weight: var(--fw-black);
+  font-stretch: var(--font-stretch-tight);
+  font-style: italic;
+  text-transform: uppercase;
   line-height: 1;
 }
 
-/* Figma fixes this column at 100px, which is what "sport" and "bonus" happen
-   to measure at 30px. Left auto here: js/i18n.js translates both words. */
+/* The design's own figure, guarded at widths narrower than the 360 it was
+   drawn on. 84/360 is 23.3cqw, so a 360 card renders 84px exactly and a 296
+   card -- what a 320px phone leaves after the sheet's padding -- renders 69
+   rather than pushing the numerals off the side. */
+.card .promo__title { font-size: min(16px, 4.45cqw); color: var(--second); }
+.card .promo__pct   { font-size: min(84px, 23.3cqw); color: var(--accent); }
+.card .promo__sub   { font-size: min(34px, 9.45cqw); color: var(--second); }
 
-.card .promo__sub {
-  color: var(--accent);
-  font-size: clamp(17px, min(5.65cqw, 5cqh), 22px);
-  font-weight: 800;
-  line-height: 1.1;
-}
-
-/* ── segmented tabs ───────────────────────────────────────── */
+/* ── tabs ─────────────────────────────────────────────────────
+   Not the segmented pill the card this replaces had: two labels on a rule,
+   the active one navy over a 36x3 bar. */
 
 .card .tabs {
   display: flex;
-  gap: 2px;
-  height: 40px;
-  padding: 3px;
-  border-radius: 12px;
-  background: var(--field);
+  gap: 24px;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--stroke);
 }
 
 .card .tab {
-  flex: 1 0 0;
-  min-width: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  border-radius: 9px;
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 600;
-  /* The active pill used to appear instantly: green plate, black text, no
-     transition at all. Named properties rather than `all`, and `ease` because
-     this is a colour change rather than something entering. */
-  transition: background-color 160ms ease, color 160ms ease, scale 140ms var(--ease-out);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--txt-secondary);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  transition: color 160ms ease;
 }
 
-/* `scale`, not `transform`: it composes with anything a transform is already
-   doing and cannot be clobbered by one. Same reason the ball uses it. */
-.card .tab:active,
-.card .country:active { scale: .97; }
+/* The bar is always in the layout, so switching tabs cannot move the rule it
+   sits on by 3px. Only its colour changes. */
+.card .tab::after {
+  content: "";
+  width: 36px;
+  height: 3px;
+  border-radius: 2px;
+  background: transparent;
+  transition: background-color 160ms ease;
+}
 
-.card .country { transition: scale 140ms var(--ease-out); }
-
-.card .tab__icon { width: 16px; height: 16px; opacity: .85; }
-
-.card .tab.is-active { background: var(--accent); color: #000; }
-.card .tab.is-active .tab__icon { filter: brightness(0); opacity: 1; }
+.card .tab.is-active { color: var(--second); }
+.card .tab.is-active::after { background: var(--second); }
 
 /* ── fields ───────────────────────────────────────────────── */
 
-.card .fields { display: flex; flex-direction: column; gap: 12px; }
+.card .fields { display: flex; flex-direction: column; gap: 16px; }
 
-.card .field { display: flex; flex-direction: column; gap: 8px; }
-
-.card .row { display: flex; gap: 8px; align-items: stretch; }
+.card .field { display: flex; flex-direction: column; gap: 6px; }
 
 .card .label {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
+  color: var(--txt-secondary);
+  font-size: 13px;
+  font-weight: var(--fw-semi);
 }
-
-.card .country {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 44px;
-  padding: 0 12px;
-  border-radius: 12px;
-  background: var(--field);
-}
-
-.card .country__flag {
-  display: grid;
-  place-items: center;
-  /* 30, not 26: Figma clips the 26x20 plate inside a 30px box, and that box
-     is what sets the picker's width -- 12 + 30 + 6 + 10 + 12 = 70. Sized off
-     the plate instead, the picker came out 66 and the phone field 4px wide. */
-  width: 30px;
-  height: 30px;
-  overflow: hidden;
-}
-
-.card .country__flag img {
-  width: 26px;
-  height: 20px;
-  object-fit: cover;
-  border-radius: 4px;
-  background: #fff;
-}
-.card .country__caret { width: 10px; height: 6px; }
-
-/* `flex: 1 0 0` belongs to the phone row only, and putting it here was a
-   real defect rather than a tidiness one. The email field is a COLUMN, and in
-   a column flex-basis is the height: basis 0 beat `height: 44px` outright and
-   the field rendered 20px tall against the 44 of the select right below it.
-   Measured on the live page at 390 wide, and visible on a phone. */
-.card .row .input { flex: 1 0 0; }
 
 .card .input {
-  min-width: 0;
   display: flex;
   align-items: center;
-  height: 44px;
+  gap: 12px;
+  min-width: 0;
+  height: 48px;
   padding: 0 16px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: var(--field);
+  border: 1.5px solid var(--stroke);
+  border-radius: 10px;
+  background: var(--bg-secondary);
   transition: border-color .18s ease;
 }
 
 .card .input input {
-  width: 100%;
+  flex: 1 0 0;
+  min-width: 0;
   border: 0;
   background: none;
   outline: none;
-  color: #fff;
+  color: var(--txt-main);
+  font-family: inherit;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: var(--fw-medium);
 }
 
-/* The design puts an 11px uppercase hint in the empty field -- "EMAIL
-   ADDRESS", styled like the label above the bonus select. These are format
-   hints at the value's own size instead ("you@example.com", "90 123 45 67"),
-   which is what the phone tab needs anyway and reads as something to type
-   rather than as a label sitting inside a box. js/i18n.js holds the strings. */
-.card .input input::placeholder { color: var(--muted); }
+.card .input input::placeholder {
+  color: var(--txt-secondary);
+  opacity: 1;   /* Firefox dims placeholders by default; the design does not. */
+}
 
-.card .input:focus-within { border-color: var(--accent); }
+/* The phone field carries the country in front of the input rather than in a
+   picker: the offer is Ukraine-only and the design fixes +380 as text. The
+   flag is the flag-icons SVG the language menu already uses -- the design
+   draws the emoji, which renders as the letters UA on Windows and does not
+   match the flags eight lines up the page. */
+.card .input--phone { gap: 8px; }
 
-.card .field.is-invalid .input { border-color: var(--err); }
+.card .input__flag {
+  width: 24px;
+  height: 18px;
+  border-radius: 3px;
+  object-fit: cover;
+  background: var(--white);
+}
+
+.card .input__prefix {
+  color: var(--txt-main);
+  font-size: 15px;
+  font-weight: var(--fw-medium);
+}
+
+/* The reveal toggle. A button, not an icon on a div: it is the one control in
+   the field that is not the input, and it has to be reachable by Tab. */
+.card .eye {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  transition: opacity 160ms ease;
+}
+
+.card .eye img { width: 20px; height: 20px; }
+.card .eye[aria-pressed="true"] { opacity: .55; }
+
+.card .field.is-invalid .input { border-color: var(--danger); }
+.card .field.is-valid .input { border-color: var(--green); }
+
+/* The tick the design puts inside a valid password field, after the eye. */
+.card .ok {
+  display: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--green);
+}
+
+.card .field.is-valid .ok { display: grid; }
+.card .ok img { width: 10px; height: 10px; }
 
 .card .err {
-  color: var(--err);
+  color: var(--danger);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   opacity: 0;
   transform: translateY(-4px);
   transition: opacity 160ms ease, transform 160ms var(--ease-out);
@@ -254,34 +296,49 @@
 
 .card .err.is-shown { opacity: 1; transform: none; }
 
-.card .select {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 12px;
-  background: var(--field);
-}
+/* ── 18+ consent ──────────────────────────────────────────────
+   The sentence is not a <label for>: it carries two links, and a click on
+   either would otherwise toggle the box on its way to the anchor. The box
+   names itself with aria-label and points at the sentence with
+   aria-describedby instead. */
 
-.card .select__icon { width: 20px; height: 20px; }
-.card .select__caret { width: 12px; height: 8px; }
+.card .agree { display: flex; gap: 12px; align-items: flex-start; }
 
-.card .select select {
-  flex: 1 0 0;
-  min-width: 0;
+.card .agree__box {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
   appearance: none;
   -webkit-appearance: none;
-  border: 0;
-  background: none;
-  outline: none;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 500;
+  border: 1.5px solid var(--stroke);
+  border-radius: 6px;
+  background: var(--white);
+  transition: background-color 160ms ease, border-color 160ms ease;
 }
 
-.card .select select option { background: var(--field); color: #fff; }
+.card .agree__box:checked {
+  border-color: var(--green);
+  background: var(--green) url("../assets/img/icons/check.svg") center / 10px 10px no-repeat;
+}
+
+.card .agree__text {
+  flex: 1 0 0;
+  min-width: 0;
+  color: var(--txt-secondary);
+  font-size: 13px;
+  font-weight: var(--fw-regular);
+  line-height: 18px;
+}
+
+/* [href] only, like the login link below: js/main.js supplies the two URLs,
+   and until it does these are not links and must not advertise themselves as
+   ones. */
+.card .agree__text a[href] {
+  color: var(--green);
+  font-weight: var(--fw-semi);
+  text-decoration: underline;
+}
 
 /* ── actions ──────────────────────────────────────────────── */
 
@@ -289,127 +346,154 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding-top: 8px;
+  align-items: center;
 }
 
 .card .cta {
   display: grid;
   place-items: center;
-  height: 44px;
-  border-radius: 12px;
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: 10px;
   background: var(--accent);
-  color: var(--cta-ink);
-  font-size: 18px;
-  font-weight: 700;
+  box-shadow: 0 4px 6px rgba(255,69,0,.19);
+  color: var(--accent-ink);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
   transition: filter .16s ease, transform .16s ease;
 }
 
 .card .cta:active { transform: scale(.985); }
 .card .cta:hover { filter: brightness(1.06); }
 
-.card .cta:disabled,
-.card .cta[aria-disabled="true"] {
-  background: rgba(48, 209, 88, .3);
-  color: #8e8e93;
-  opacity: .6;
-  cursor: default;
-  filter: none;
-}
-
 .card .foot {
-  padding: 8px 0;
-  color: var(--foot);
-  font-size: 15px;
+  color: var(--txt-secondary);
+  font-size: 14px;
+  font-weight: var(--fw-medium);
+}
+
+.card .foot a {
+  color: var(--accent);
+  font-weight: var(--fw-bold);
+}
+
+.card .foot a[href] { text-decoration: underline; }
+
+/* ── registration complete ────────────────────────────────────
+   19:4827. The promo header stays; a rule, the success line, the credentials
+   box and the button replace the form below it. */
+
+.card .rule {
+  width: 100%;
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--stroke);
+}
+
+/* Black Italic at wdth 100, not the condensed coordinate the promo uses --
+   19:4840 sets this one line back to the full width. */
+.card .done__title {
+  color: var(--second);
+  font-size: 20px;
+  font-weight: var(--fw-black);
+  font-style: italic;
+  text-transform: uppercase;
   text-align: center;
 }
 
-/* Figma draws the whole line as one grey paragraph. The underline is ours
-   and stays: the link is the same colour as the sentence around it, so it is
-   the only thing that marks it as a link at all. */
-/* [href], so the underline is a promise the anchor can keep. LOGIN_URL in
-   js/main.js is null until the client supplies it, and an anchor with no href
-   is not a link -- styling it like one would advertise a click that no longer
-   happens. It renders as the sentence it sits in until the URL arrives. */
-.card .foot a[href] { color: var(--foot); text-decoration: underline; }
-
-/* ── complete state ──────────────────────────────────────────
-   Figma node 1:3427, "Device=Mobile, Tab=Phone, State=Complete". It is a
-   different card from the form step, not the same card with the middle
-   swapped: the background is 80% opaque rather than 50%, the sections are
-   24 apart rather than 18, and the summary box carries a border. */
-
-/* The one state-dependent value on the shell. :has() rather than a class
-   because the step is already the source of truth -- js/form.js toggles
-   [hidden] on it, and a class would be a second thing to keep in step. */
-.card:has([data-step="done"]:not([hidden])) { background: rgba(18,18,20,.8); }
-
-.card .card__step[data-step="done"] {
-  align-items: stretch;
-  text-align: center;
-  gap: 24px;
-  /* The card contributes 12 top and 16 bottom; Figma wants 24 of each. */
-  padding: 12px 16px 8px;
-}
-
-/* Figma wraps the tick in a container with 24 above and 8 below. The 8 sits
-   on top of the 24 gap, so the title starts 32 below the tick. */
-.card .done__tick {
-  width: 64px;
-  height: 64px;
-  margin: 24px auto 8px;
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 3.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* Title and subtitle are one group in the design, 8 apart, not two children
-   of the 24 gap. */
-.card .done__head {
+.card .creds {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.card .done__title { font-size: clamp(19px, min(6.15cqw, 5.5cqh), 24px); font-weight: 900; color: #fff; }
-.card .done__sub { font-size: 16px; font-weight: 500; color: var(--foot); }
-
-.card .done__box {
-  display: grid;
-  gap: 4px;
+  gap: 12px;
+  margin: 0;
   padding: 16px;
-  border: 1px solid var(--card-brd);
-  border-radius: 14px;
-  background: var(--field);
-  text-align: left;
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-md);
+  background: var(--bg-secondary);
 }
 
-.card .done__box dt {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
+.card .cred {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.card .done__box dd {
-  color: #fff;
-  font-size: 16px;
-  font-weight: 500;
+/* The rule between the two rows. A border rather than the separate line
+   element the design draws, because <hr> is not allowed inside <dl>: the
+   12px flex gap above it and the 12px padding below reproduce the same
+   spacing the design puts on either side of the line. */
+.card .cred + .cred {
+  padding-top: 12px;
+  border-top: 1px solid var(--stroke);
 }
 
-/* The rule between the two rows. Figma puts 12 on each side of it; the grid
-   gap already supplies 4 of the lower 12. */
-.card .done__box dd:not(:last-child) {
-  padding-bottom: 12px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--card-brd);
+.card .cred dt {
+  color: var(--txt-secondary);
+  font-size: 14px;
+  font-weight: var(--fw-semi);
 }
 
-/* The masked password reads as a value, not as data: greyed in the design. */
-.card .done__pw { color: var(--muted); }
+.card .cred dd {
+  margin: 0;
+  color: var(--txt-main);
+  font-size: 15px;
+  font-weight: var(--fw-bold);
+  /* The login can be long enough to meet the copy button; let it shrink and
+     ellipsize rather than push the button off the box. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-/* 12 above the button, on top of the 24 gap. */
-.card .card__step[data-step="done"] .cta { margin-top: 12px; }
+/* Two offset rounded rectangles, the geometry 19:4845 draws: 10.8 x 12.6 at
+   1.2 stroke, the front one offset by 4.5 and filled white so the back one
+   reads as a second sheet behind it. */
+.card .copy {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--txt-secondary);
+  transition: color 160ms ease;
+}
+
+.card .copy svg { display: block; width: 18px; height: 18px; }
+.card .copy:hover { color: var(--txt-main); }
+.card .copy.is-copied { color: var(--green); }
+
+.card .done__note {
+  color: var(--txt-secondary);
+  font-size: 13px;
+  font-weight: var(--fw-medium);
+  text-align: center;
+}
+
+/* The design puts 14 under the button here against the 16 the form step uses. */
+.card .card__step[data-step="done"] .actions { gap: 14px; }
+
+/* ── desktop geometry ─────────────────────────────────────────
+   19:4675. Everything not named here is the same in both nodes. */
+
+@container card (min-width: 504px) {
+  .card { padding: 36px; }
+  .card .promo { gap: 24px; }
+  .card .promo__logo { width: 247px; height: 44px; }
+  .card .promo__head { gap: 8px; }
+  .card .promo__title { font-size: min(24px, 5.28cqw); }
+  .card .promo__pct   { font-size: min(100px, 22cqw); }
+  .card .promo__sub   { font-size: min(44px, 9.68cqw); }
+  /* The one gap the desktop node adds inside the head: 14 between the
+     numerals and the amount, where mobile stacks them flush. */
+  .card .promo__offer { gap: 14px; }
+}
 
 /* ── focus ────────────────────────────────────────────────── */
 
@@ -418,17 +502,19 @@
 .card:focus { outline: none; }
 
 .card .tab:focus-visible,
-.card .country:focus-visible,
+.card .eye:focus-visible,
+.card .copy:focus-visible,
+.card .agree__box:focus-visible,
 .card .cta:focus-visible,
-.card .foot a:focus-visible {
+.card .foot a:focus-visible,
+.card .agree__text a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* The controls themselves clear the browser outline above, so the ring goes
-   on the box you can see instead of the invisible text node inside it. */
-.card .input:focus-within,
-.card .select:focus-within {
+/* The input clears the browser outline above, so the ring goes on the box you
+   can see instead of the invisible text node inside it. */
+.card .input:focus-within {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

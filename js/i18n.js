@@ -36,29 +36,43 @@
       'ball.shoot':     'Shoot at a random spot',
       'msg.miss':       'So close! One more try',
       'msg.goal':       'GOAL!',
-      'promo.sport':    'sport',
-      'promo.bonus':    'bonus',
-      'promo.sub':      'or up to (AMOUNT) + 150 FS',
+      /* The offer figures are final copy and identical in every language, so
+         they are strings here rather than markup: a locale that wanted to
+         write the amount differently can, without touching index.html. */
+      'promo.title':    'Welcome sports bonus',
+      'promo.pct':      '225%',
+      'promo.amount':   'up to 15000 UAH',
       'tabs.label':     'Sign up with',
       'tab.phone':      'PHONE',
       'tab.email':      'EMAIL',
-      'field.country':  'Country code',
-      'field.phone':    '90 123 45 67',
-      'field.email':    'you@example.com',
-      'field.bonus':    'Select bonus',
+      /* The placeholders are the design's own. The email field has no label
+         above it, which is why the word sits inside the box; the phone field
+         shows the shape of the number behind the fixed +380. */
+      'field.email':    'Email',
+      'field.phone':    '00 000 0000',
+      'field.password': 'Password',
+      'field.passwordHint': 'Enter password',
+      'field.reveal':   'Show password',
       'err.phone':      'Invalid phone number',
       'err.email':      'Invalid email address',
-      'bonus.casino':   'Casino bonus',
-      'bonus.sport':    'Sport bonus',
-      'bonus.none':     'No bonus',
-      'cta.continue':   'CONTINUE',
+      'err.password':   'Password is too short',
+      /* Five pieces rather than one sentence with markup in it: the two links
+         are their own nodes, so a locale can move them within the sentence
+         and none of the strings carries a tag. */
+      'agree.aria':     'I am 18 and I accept the terms',
+      'agree.pre':      'I am 18 years old and I accept the ',
+      'agree.terms':    'Terms of Use',
+      'agree.mid':      ' and the ',
+      'agree.privacy':  'Privacy Policy',
+      'agree.post':     '.',
+      'cta.register':   'REGISTER',
       'foot.have':      'Already have an account?',
       'foot.login':     'Log in',
-      'done.title':     'Registration Successful!',
-      'done.sub':       'Your secure account has been created.',
-      'done.phone':     'ACCOUNT PHONE',
-      'done.email':     'ACCOUNT EMAIL',
-      'done.password':  'PASSWORD',
+      'done.title':     'Registration successful!',
+      'done.login':     'Login:',
+      'done.password':  'Password:',
+      'done.copy':      'Copy',
+      'done.note':      'Save your login details',
       'cta.website':    'GO TO WEBSITE'
     },
 
