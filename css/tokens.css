@@ -1,0 +1,162 @@
+/* Design tokens — CARRIED OVER FROM fs-penalty, NOT YET TOP WIN.
+   The palette below is still FanSport's. Etapa 2 rewrites this file from the
+   Top Win brandbook (Figma mAJyDSaXdr9GO72b7FGvI8, Palette page 19:5312) and
+   swaps the display face to Russo One. Every other stylesheet already reads
+   through the semantic layer at the bottom, so only this file changes. */
+
+/* ── Self-hosted type ──────────────────────────────────────────
+   Variable-weight woff2, one file per unicode subset, so an English page
+   never downloads the Cyrillic cut. Files and licence sit in assets/fonts/;
+   nothing is fetched from Google at runtime.
+
+   Montserrat replaces Alan Sans as the display face. Alan Sans ships only
+   latin, latin-ext and arabic, so Russian had no glyphs at all. */
+
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 700 900;
+  font-display: swap;
+  src: url("../assets/fonts/montserrat-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 700 900;
+  font-display: swap;
+  src: url("../assets/fonts/montserrat-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 700 900;
+  font-display: swap;
+  src: url("../assets/fonts/montserrat-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 400 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("../assets/fonts/roboto-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 400 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("../assets/fonts/roboto-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 400 900;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("../assets/fonts/roboto-cyrillic.woff2") format("woff2");
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+:root {
+  /* The two ramps below are the brand palette in full. Most steps are not
+     referenced by any rule in css/ — only the ones the semantic layer picks up
+     and a handful used directly (--green-300/500, --purple-200, --ink-600…950).
+     They are kept deliberately, as the reference a new component picks from,
+     not because they are all live. Roughly 1.4 kB uncompressed, which is
+     nothing beside the page's images; the cost of losing them is a green
+     invented by hand rather than picked from here. That had already happened
+     twice: css/form.css carried --cta #30d158 and --promo #3dd629 alongside
+     this file's --accent #3fd62b, three greens that were not each other. All
+     three are --accent now, and the card reaches for it by name. */
+
+  /* ── Primary: Green Goblin ────────────────────────────────── */
+  --green-50:  #ecfce9;
+  --green-100: #d5f9ce;
+  --green-200: #aff3a3;
+  --green-300: #7ce96d;
+  --green-400: #3fd62b;   /* FS Color/Accent Green */
+  --green-500: #31c022;
+  --green-600: #219917;
+  --green-700: #1c7516;
+  --green-800: #1b5d17;
+  --green-900: #1a4f18;
+  --green-950: #082b08;
+
+  /* ── Secondary: Purple Lavander ───────────────────────────── */
+  --purple-50:  #f9f5ff;
+  --purple-100: #f1e7ff;
+  --purple-200: #e5d3ff;
+  --purple-300: #d1b1ff;
+  --purple-400: #b57fff;
+  --purple-500: #9a4ffe;
+  --purple-600: #822bf2;
+  --purple-700: #6f1bd5;
+  --purple-800: #601bae;
+  --purple-900: #4f178c;
+  --purple-950: #330368;
+
+  /* ── Neutrals ─────────────────────────────────────────────── */
+  --ink-000: #ffffff;
+  --ink-100: #d6d6d8;
+  --ink-200: #a3a3a8;
+  --ink-300: #79797f;
+  --ink-600: #2a2a2e;
+  --ink-700: #1e1e21;
+  --ink-800: #161618;
+  --ink-900: #0b0b0d;
+  --ink-950: #050506;
+
+  /* ── Semantic ─────────────────────────────────────────────── */
+  --accent:        var(--green-400);
+  --accent-press:  var(--green-500);
+  --accent-ink:    var(--ink-950);
+  --surface:       var(--ink-800);
+  --surface-raised:var(--ink-700);
+  --surface-field: var(--ink-600);
+  --text:          var(--ink-000);
+  --text-muted:    var(--ink-200);
+  --danger:        #ff4d4d;
+
+  /* Glass plate, brandbook guideline 011 */
+  --glass-bg: linear-gradient(160deg, rgba(255,255,255,.13), rgba(255,255,255,.03));
+  --glass-brd: rgba(255,255,255,.22);
+  --glass-blur: 10px;
+
+  /* Colored glass plate (purple) */
+  --glass-purple-bg: linear-gradient(160deg, rgba(154,79,254,.34), rgba(80,20,150,.16));
+  --glass-purple-brd: rgba(181,127,255,.42);
+
+  /* ── Type ─────────────────────────────────────────────────── */
+  --font: "Montserrat", system-ui, -apple-system, sans-serif;
+  --fw-semi: 600;   /* Roboto only; the Montserrat cut carries 700-900 */
+  --fw-bold: 700;
+  --fw-xbold: 800;
+  --fw-black: 900;
+
+  /* ── Motion ─────────────────────────────────────── */
+  /* The curve already used by js/animator.js and the card in form.css,
+     given a name so new motion extends one system rather than forking. */
+  --ease-out: cubic-bezier(.2, .9, .3, 1);
+
+  /* ── Radii / elevation ────────────────────────────────────── */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  --glow-green: 0 0 24px rgba(63,214,43,.45);
+  --glow-purple: 0 0 28px rgba(154,79,254,.45);
+}

@@ -1,0 +1,434 @@
+/* Registration card — Figma mAJyDSaXdr9GO72b7FGvI8, node 1:2823.
+   The greys, the ink and the error red below are the design's own and stay
+   card-scoped: the card runs Roboto against the page's Montserrat and its own
+   surface greys, so they have no business in tokens.css.
+
+   The green does not stay. This file used to carry two of its own -- --cta
+   #30d158 on the button, the tabs, the focus rings and the tick, and --promo
+   #3dd629 on the offer line -- against --accent #3fd62b on the page. Three
+   greens a hand's breadth apart is a thing nobody chose; it is what happens
+   when a card is built from its own Figma node. Both are --accent now.
+   Measured before swapping, every use site holds or improves: black on the
+   button goes 9.55:1 to 9.99:1, black on an active tab 10.39 to 10.87, and
+   the offer line is within a thousandth of its old luminance. */
+
+.card {
+  --card-bg:   rgba(18,18,20,.5);
+  --card-brd:  #3a3a3c;
+  --field:     #2c2c2e;
+  --muted:     #9a9aa0;   /* 5.0:1 on --field; #8e8e93 was 4.3:1 */
+  --cta-ink:   #0e0e0e;
+  --foot:      #aeaeb2;
+  --err:       #ff453a;
+}
+
+/* ── overlay ──────────────────────────────────────────────── */
+
+.sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px 12px;
+  background: rgba(4,4,6,.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+/* Entry is slower than exit, the same rule the language menu follows: arriving
+   is worth watching, leaving is not. The duration lives on the open state so
+   the base rule is the exit. */
+.sheet.is-open { opacity: 1; transition-duration: 280ms; }
+
+/* ── card shell ───────────────────────────────────────────── */
+
+.card {
+  /* min(), not width + max-width: the sheet's grid column is auto-sized, so it
+     takes its width from this rule and a percentage max-width then resolves
+     against the column the card itself created. At 320px that left 57px of the
+     card outside the screen, on a page that cannot scroll to reach it. */
+  width: min(365px, 100%);
+  max-height: 100%;
+  /* The page never scrolls; if the soft keyboard squeezes the stage the
+     card scrolls inside itself instead. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 0 16px;
+  border: 1px solid var(--card-brd);
+  border-radius: 24px;
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: "Roboto", system-ui, -apple-system, sans-serif;
+  transform: translateY(14px) scale(.98);
+  transition: transform 180ms var(--ease-out);
+}
+
+.sheet.is-open .card { transform: none; transition-duration: 300ms; }
+
+.card .card__step {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 12px 16px;
+}
+
+/* ── promo header ─────────────────────────────────────────── */
+
+.card .promo { text-align: center; text-transform: uppercase; }
+
+.card .promo__row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 900;
+}
+
+/* The card's type is fluid against #stage, the nearest query container. Each
+   cqw figure is the design value over the 390px stage it was drawn on — 76/390
+   is 19.5cqw — so a 390 phone still renders the design exactly and anything
+   narrower shrinks with it. The cqh half only binds in landscape, where the
+   card scrolls inside itself and a 76px numeral costs a field. */
+.card .promo__pct {
+  font-size: clamp(56px, min(19.5cqw, 17cqh), 76px);
+  line-height: 1.05;
+}
+
+.card .promo__stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: clamp(23px, min(7.7cqw, 7cqh), 30px);
+  line-height: 1;
+}
+
+/* Figma fixes this column at 100px, which is what "sport" and "bonus" happen
+   to measure at 30px. Left auto here: js/i18n.js translates both words. */
+
+.card .promo__sub {
+  color: var(--accent);
+  font-size: clamp(17px, min(5.65cqw, 5cqh), 22px);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+/* ── segmented tabs ───────────────────────────────────────── */
+
+.card .tabs {
+  display: flex;
+  gap: 2px;
+  height: 40px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--field);
+}
+
+.card .tab {
+  flex: 1 0 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  /* The active pill used to appear instantly: green plate, black text, no
+     transition at all. Named properties rather than `all`, and `ease` because
+     this is a colour change rather than something entering. */
+  transition: background-color 160ms ease, color 160ms ease, scale 140ms var(--ease-out);
+}
+
+/* `scale`, not `transform`: it composes with anything a transform is already
+   doing and cannot be clobbered by one. Same reason the ball uses it. */
+.card .tab:active,
+.card .country:active { scale: .97; }
+
+.card .country { transition: scale 140ms var(--ease-out); }
+
+.card .tab__icon { width: 16px; height: 16px; opacity: .85; }
+
+.card .tab.is-active { background: var(--accent); color: #000; }
+.card .tab.is-active .tab__icon { filter: brightness(0); opacity: 1; }
+
+/* ── fields ───────────────────────────────────────────────── */
+
+.card .fields { display: flex; flex-direction: column; gap: 12px; }
+
+.card .field { display: flex; flex-direction: column; gap: 8px; }
+
+.card .row { display: flex; gap: 8px; align-items: stretch; }
+
+.card .label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.card .country {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--field);
+}
+
+.card .country__flag {
+  display: grid;
+  place-items: center;
+  /* 30, not 26: Figma clips the 26x20 plate inside a 30px box, and that box
+     is what sets the picker's width -- 12 + 30 + 6 + 10 + 12 = 70. Sized off
+     the plate instead, the picker came out 66 and the phone field 4px wide. */
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+}
+
+.card .country__flag img {
+  width: 26px;
+  height: 20px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #fff;
+}
+.card .country__caret { width: 10px; height: 6px; }
+
+/* `flex: 1 0 0` belongs to the phone row only, and putting it here was a
+   real defect rather than a tidiness one. The email field is a COLUMN, and in
+   a column flex-basis is the height: basis 0 beat `height: 44px` outright and
+   the field rendered 20px tall against the 44 of the select right below it.
+   Measured on the live page at 390 wide, and visible on a phone. */
+.card .row .input { flex: 1 0 0; }
+
+.card .input {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--field);
+  transition: border-color .18s ease;
+}
+
+.card .input input {
+  width: 100%;
+  border: 0;
+  background: none;
+  outline: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* The design puts an 11px uppercase hint in the empty field -- "EMAIL
+   ADDRESS", styled like the label above the bonus select. These are format
+   hints at the value's own size instead ("you@example.com", "90 123 45 67"),
+   which is what the phone tab needs anyway and reads as something to type
+   rather than as a label sitting inside a box. js/i18n.js holds the strings. */
+.card .input input::placeholder { color: var(--muted); }
+
+.card .input:focus-within { border-color: var(--accent); }
+
+.card .field.is-invalid .input { border-color: var(--err); }
+
+.card .err {
+  color: var(--err);
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 160ms ease, transform 160ms var(--ease-out);
+}
+
+.card .err.is-shown { opacity: 1; transform: none; }
+
+.card .select {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--field);
+}
+
+.card .select__icon { width: 20px; height: 20px; }
+.card .select__caret { width: 12px; height: 8px; }
+
+.card .select select {
+  flex: 1 0 0;
+  min-width: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: none;
+  outline: none;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.card .select select option { background: var(--field); color: #fff; }
+
+/* ── actions ──────────────────────────────────────────────── */
+
+.card .actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.card .cta {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--cta-ink);
+  font-size: 18px;
+  font-weight: 700;
+  transition: filter .16s ease, transform .16s ease;
+}
+
+.card .cta:active { transform: scale(.985); }
+.card .cta:hover { filter: brightness(1.06); }
+
+.card .cta:disabled,
+.card .cta[aria-disabled="true"] {
+  background: rgba(48, 209, 88, .3);
+  color: #8e8e93;
+  opacity: .6;
+  cursor: default;
+  filter: none;
+}
+
+.card .foot {
+  padding: 8px 0;
+  color: var(--foot);
+  font-size: 15px;
+  text-align: center;
+}
+
+/* Figma draws the whole line as one grey paragraph. The underline is ours
+   and stays: the link is the same colour as the sentence around it, so it is
+   the only thing that marks it as a link at all. */
+/* [href], so the underline is a promise the anchor can keep. LOGIN_URL in
+   js/main.js is null until the client supplies it, and an anchor with no href
+   is not a link -- styling it like one would advertise a click that no longer
+   happens. It renders as the sentence it sits in until the URL arrives. */
+.card .foot a[href] { color: var(--foot); text-decoration: underline; }
+
+/* ── complete state ──────────────────────────────────────────
+   Figma node 1:3427, "Device=Mobile, Tab=Phone, State=Complete". It is a
+   different card from the form step, not the same card with the middle
+   swapped: the background is 80% opaque rather than 50%, the sections are
+   24 apart rather than 18, and the summary box carries a border. */
+
+/* The one state-dependent value on the shell. :has() rather than a class
+   because the step is already the source of truth -- js/form.js toggles
+   [hidden] on it, and a class would be a second thing to keep in step. */
+.card:has([data-step="done"]:not([hidden])) { background: rgba(18,18,20,.8); }
+
+.card .card__step[data-step="done"] {
+  align-items: stretch;
+  text-align: center;
+  gap: 24px;
+  /* The card contributes 12 top and 16 bottom; Figma wants 24 of each. */
+  padding: 12px 16px 8px;
+}
+
+/* Figma wraps the tick in a container with 24 above and 8 below. The 8 sits
+   on top of the 24 gap, so the title starts 32 below the tick. */
+.card .done__tick {
+  width: 64px;
+  height: 64px;
+  margin: 24px auto 8px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Title and subtitle are one group in the design, 8 apart, not two children
+   of the 24 gap. */
+.card .done__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card .done__title { font-size: clamp(19px, min(6.15cqw, 5.5cqh), 24px); font-weight: 900; color: #fff; }
+.card .done__sub { font-size: 16px; font-weight: 500; color: var(--foot); }
+
+.card .done__box {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--card-brd);
+  border-radius: 14px;
+  background: var(--field);
+  text-align: left;
+}
+
+.card .done__box dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.card .done__box dd {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* The rule between the two rows. Figma puts 12 on each side of it; the grid
+   gap already supplies 4 of the lower 12. */
+.card .done__box dd:not(:last-child) {
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--card-brd);
+}
+
+/* The masked password reads as a value, not as data: greyed in the design. */
+.card .done__pw { color: var(--muted); }
+
+/* 12 above the button, on top of the 24 gap. */
+.card .card__step[data-step="done"] .cta { margin-top: 12px; }
+
+/* ── focus ────────────────────────────────────────────────── */
+
+/* js/form.js focuses the card itself when it opens, so the whole panel must
+   not draw a ring. Everything you can actually Tab onto must. */
+.card:focus { outline: none; }
+
+.card .tab:focus-visible,
+.card .country:focus-visible,
+.card .cta:focus-visible,
+.card .foot a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The controls themselves clear the browser outline above, so the ring goes
+   on the box you can see instead of the invisible text node inside it. */
+.card .input:focus-within,
+.card .select:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

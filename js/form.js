@@ -1,0 +1,310 @@
+/* Registration card behaviour. Client-side only: no request is ever sent.
+   Tab switch, per-tab validation, then the "Complete" state from the design.
+
+   The card claims role="dialog" aria-modal="true" in the markup, so it has to
+   behave like one: focus moves in on open, Tab stays inside, Escape closes,
+   and focus goes back where it came from. */
+(function () {
+  'use strict';
+
+  /* IT will replace this with the real signup URL. While it is null the
+     "GO TO WEBSITE" button reloads the page, which is the safe stand-in.
+     Pointing it at the real destination is a one-line change. */
+  var DESTINATION = null;   // e.g. 'https://topwin.example/signup?utm=penalty'
+
+  /* The card has never sent anything anywhere, and this is where it would.
+     SUBMIT receives what the visitor actually chose -- the contact, which tab
+     it came from, and the bonus -- and null leaves the behaviour exactly as it
+     was. IT replaces the body; nothing else in this file has to change.
+
+     It is called after the done screen is already up, and inside a try, so a
+     hook that throws cannot strand the visitor on a form that has stopped
+     responding. Same reason game.js catches around the shot sequence. */
+  var SUBMIT = null;   // e.g. function (data) { navigator.sendBeacon('/signup', JSON.stringify(data)); }
+
+  var FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),' +
+                  'select:not([disabled]),textarea:not([disabled]),' +
+                  '[tabindex]:not([tabindex="-1"])';
+
+  var sheet, card, stepForm, stepDone, tabs, phoneInput, emailInput, bonusSelect;
+  var mode = 'phone';
+  var lastFocus = null;
+  var closing = false;
+
+  function field(name) {
+    return card.querySelector('.field[data-for="' + name + '"]');
+  }
+
+  function setTab(next) {
+    mode = next;
+    tabs.forEach(function (t) {
+      var on = t.dataset.tab === next;
+      t.classList.toggle('is-active', on);
+      t.setAttribute('aria-selected', String(on));
+    });
+    ['phone', 'email'].forEach(function (name) {
+      var f = field(name);
+      f.hidden = name !== next;
+      clearError(f);
+    });
+  }
+
+  /* The error line fades rather than appearing. It used to be a plain
+     `hidden` toggle, so a failed submit snapped 22px of card into existence
+     with nothing to explain the movement.
+
+     Two steps, because reset.css forces [hidden] to display:none !important
+     and display cannot be transitioned: unhide one frame ahead of the class
+     going on, and take the class off one transition ahead of hiding. The
+     language menu and the registration card itself both do this already. */
+  var ERR_OUT = 160;
+  var errTimers = {};
+
+  function clearError(f) {
+    f.classList.remove('is-invalid');
+    var input = f.querySelector('input');
+    if (input) input.removeAttribute('aria-invalid');
+    var e = f.querySelector('.err');
+    if (!e || e.hidden) return;
+    e.classList.remove('is-shown');
+    clearTimeout(errTimers[e.id]);
+    errTimers[e.id] = setTimeout(function () { e.hidden = true; }, ERR_OUT);
+  }
+
+  function showError(f) {
+    f.classList.add('is-invalid');
+    /* The red ring is only half the message. aria-invalid states it, and the
+       focus move is what makes aria-describedby read the error out: nothing
+       announces a message that arrives while focus sits on the dialog. */
+    var input = f.querySelector('input');
+    if (input) {
+      input.setAttribute('aria-invalid', 'true');
+      input.focus({ preventScroll: true });
+    }
+    var e = f.querySelector('.err');
+    if (!e) return;
+    clearTimeout(errTimers[e.id]);
+    e.hidden = false;
+    TWFx.next(function () { e.classList.add('is-shown'); });
+  }
+
+  function validate() {
+    var f = field(mode);
+    var input = f.querySelector('input');
+    var value = input.value.trim();
+    var ok, out;
+
+    if (mode === 'phone') {
+      // Digits only once separators are stripped, 7 to 15 of them (E.164 range).
+      var digits = value.replace(/[^\d]/g, '');
+      ok = digits.length >= 7 && digits.length <= 15 && !/[a-z]/i.test(value);
+      /* The +998 is fixed and put back on the done screen, so a number typed
+         with its country code has to lose it here or it is shown twice —
+         "+998 +998901234567". Strip only when nine digits are left: a national
+         number may itself begin 998, because 99 is a live mobile prefix. */
+      out = digits.length > 9 && digits.indexOf('998') === 0
+        ? digits.slice(3)
+        : digits;
+    } else {
+      ok = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(value);
+      out = value;
+    }
+
+    if (ok) clearError(f); else showError(f);
+    return ok ? out : null;
+  }
+
+  function submit(ev) {
+    ev.preventDefault();
+    var value = validate();
+    if (!value) return;
+
+    // Swap the key, not the text: a later language change re-renders from it.
+    var label = stepDone.querySelector('dt[data-label="account"]');
+    label.setAttribute('data-i18n', mode === 'phone' ? 'done.phone' : 'done.email');
+    TWI18n.apply(stepDone);
+    stepDone.querySelector('.done__id').textContent =
+      mode === 'phone' ? '+998 ' + value : value;
+
+    stepForm.hidden = true;
+    stepDone.hidden = false;
+    // #promo-title lives inside the step just hidden, so the dialog would be
+    // left naming an element nobody can reach. Move the name with the step.
+    card.setAttribute('aria-labelledby', 'done-title');
+    card.scrollTop = 0;
+    TWAudio.play('whistle', 0.5);
+
+    /* Last, and guarded: the visitor is already on the done screen, so a hook
+       that throws costs a delivery rather than the card. */
+    if (SUBMIT) {
+      try {
+        SUBMIT({
+          via: mode,
+          contact: mode === 'phone' ? '+998' + value : value,
+          bonus: bonusSelect.value,
+          lang: document.documentElement.lang || null
+        });
+      } catch (err) {
+        console.error('[tw-penalty] the submit hook failed', err);
+      }
+    }
+  }
+
+  /* ── focus containment ────────────────────────────────────── */
+
+  /* Only what is genuinely on screen: the email field is hidden while the
+     phone tab is active, and one of the two steps is always hidden. */
+  function focusables() {
+    return Array.prototype.filter.call(
+      card.querySelectorAll(FOCUSABLE),
+      function (el) { return el.getClientRects().length > 0; }
+    );
+  }
+
+  /* Every focus() call passes preventScroll: the page must never scroll, and
+     the browser's default scroll-into-view would break that on its own. */
+  function onKeydown(ev) {
+    if (ev.key === 'Escape') {
+      ev.preventDefault();
+      close();
+      return;
+    }
+    if (ev.key !== 'Tab') return;
+
+    var list = focusables();
+    if (!list.length) return;
+
+    var first = list[0];
+    var last = list[list.length - 1];
+
+    if (!card.contains(document.activeElement)) {
+      ev.preventDefault();
+      (ev.shiftKey ? last : first).focus({ preventScroll: true });
+    } else if (ev.shiftKey && document.activeElement === first) {
+      ev.preventDefault();
+      last.focus({ preventScroll: true });
+    } else if (!ev.shiftKey && document.activeElement === last) {
+      ev.preventDefault();
+      first.focus({ preventScroll: true });
+    }
+  }
+
+  /* ── open / close ─────────────────────────────────────────── */
+
+  /* Tab is trapped, but a screen reader's virtual cursor is not: without this
+     it browses the header, the six targets and the ball behind a dialog that
+     claims aria-modal. inert takes them out of the accessibility tree and out
+     of hit-testing in one attribute. Everything under #stage except the sheet
+     itself, which is where the card lives. */
+  function background(off) {
+    Array.prototype.forEach.call(sheet.parentNode.children, function (el) {
+      if (el === sheet) return;
+      if (off) el.setAttribute('inert', '');
+      else el.removeAttribute('inert');
+    });
+  }
+
+  function open() {
+    if (!sheet.hidden) return;
+    lastFocus = document.activeElement;
+    closing = false;
+
+    sheet.hidden = false;
+    sheet.setAttribute('aria-hidden', 'false');
+    background(true);
+    document.addEventListener('keydown', onKeydown, true);
+
+    TWFx.next(function () {
+      sheet.classList.add('is-open');
+      // The card itself, not the first field: on a phone, focusing a text
+      // input pops the soft keyboard the instant the goal is scored.
+      card.focus({ preventScroll: true });
+    });
+  }
+
+  /* onDone runs once the card is fully gone. "GO TO WEBSITE" passes the
+     navigation; Escape passes nothing and simply hands the pitch back. */
+  function close(onDone) {
+    if (closing || sheet.hidden) return;
+    closing = true;
+
+    sheet.classList.remove('is-open');
+    document.removeEventListener('keydown', onKeydown, true);
+
+    setTimeout(function () {
+      sheet.hidden = true;
+      sheet.setAttribute('aria-hidden', 'true');
+      closing = false;
+      restore();
+
+      // Before the focus restore below: focus() cannot land inside inert.
+      background(false);
+
+      if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+      lastFocus = null;
+
+      // The stage still carries data-state="form", which holds .panel and
+      // .ball at pointer-events:none, and the attempt counter is still past
+      // the end of the scripted sequence. Hand both back to the game, or the
+      // page stays dead behind a card nobody can see.
+      if (window.TWGame && TWGame.reset) TWGame.reset();
+
+      if (typeof onDone === 'function') onDone();
+    }, 280);
+  }
+
+  /* Back to the opening state, so a second visit does not start on the
+     success screen with the previous answer still sitting in the field. */
+  function restore() {
+    stepDone.hidden = true;
+    stepForm.hidden = false;
+    card.setAttribute('aria-labelledby', 'promo-title');
+    phoneInput.value = '';
+    emailInput.value = '';
+    /* The select was the one control this function forgot, so a second visit
+       opened on whatever bonus the first one picked. selectedIndex, not
+       value: it restores the first option whatever the values become. */
+    bonusSelect.selectedIndex = 0;
+    setTab('phone');
+    card.scrollTop = 0;
+  }
+
+  function go() {
+    if (DESTINATION) window.location.assign(DESTINATION);
+    else window.location.reload();
+  }
+
+  /* ── boot ─────────────────────────────────────────────────── */
+
+  function init() {
+    sheet    = document.querySelector('.sheet');
+    card     = sheet.querySelector('.card');
+    stepForm = card.querySelector('[data-step="form"]');
+    stepDone = card.querySelector('[data-step="done"]');
+    tabs     = Array.prototype.slice.call(card.querySelectorAll('.tab'));
+    phoneInput = card.querySelector('#tw-phone');
+    emailInput = card.querySelector('#tw-email');
+    bonusSelect = card.querySelector('#tw-bonus');
+
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () { setTab(t.dataset.tab); });
+    });
+
+    [phoneInput, emailInput].forEach(function (input) {
+      input.addEventListener('input', function () {
+        clearError(input.closest('.field'));
+      });
+    });
+
+    card.addEventListener('submit', submit);
+
+    card.querySelector('[data-action="close"]')
+        .addEventListener('click', function () { close(go); });
+
+    // The soft keyboard changes the usable height; re-fit the stage around it.
+    card.addEventListener('focusin', function () { TWStage.fit(); });
+    card.addEventListener('focusout', function () { TWStage.fit(); });
+  }
+
+  window.TWForm = { init: init, open: open, close: close };
+})();

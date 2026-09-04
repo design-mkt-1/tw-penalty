@@ -1,0 +1,22 @@
+Thumbs.db
+.DS_Store
+*.log
+__pycache__/
+
+# Source renders that tools/cutout.py consumes. At fs-penalty these stayed
+# tracked, 22 MB of them, in a public repo — still downloadable from
+# raw.githubusercontent.com long after Pages was cleaned. The art is
+# reproducible from the prompts in docs/ART.md, so the blobs never need to be.
+raw/
+
+# Placeholder art carried over from fs-penalty so the ported page runs while
+# the Top Win art is being made. None of it belongs in this repo's history:
+# the keeper wears FanSport's kit, the plate is graded to their green/purple,
+# and the ball is painted with their LIME and PURPLE -- the plan had the ball
+# down as brand-neutral, and it is not. Etapa 3 replaces all of it and deletes
+# this block. The ball is the cheap one: two constants at the top of
+# tools/ball_sheet.py and one run of the script.
+assets/img/keeper-*.webp
+assets/img/pitch-spot.webp
+assets/img/ball.webp
+assets/img/ball-spin.webp
