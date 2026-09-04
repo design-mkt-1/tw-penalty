@@ -240,9 +240,48 @@
      aimed at the same target -- a goal spanning a quarter of a 3:2 frame,
      which is what makes the height come out near 2.66 goal widths on its own --
      but they are not the same numbers and none of them was carried over. */
-  --gw: min(92cqw, 135cqh, 560px);
+  /* The 560px cap is what keeps the goal a sensible size on a desktop, but the
+     plate is --gw * 1800/437, so it capped the BACKDROP at 2307px too and left
+     a black band down each side of anything wider -- 265px each at 2835. The
+     two cannot be separated: the plate is sized in goal widths precisely so
+     the painted posts land on .goal, and scaling it alone would unregister it.
+
+     So the floor is raised instead of the cap removed: 437/1800 is the gw at
+     which the plate is exactly as wide as the pitch, and 1790 buys about half
+     a percent of overhang so a fractional width cannot leave a sliver. Being
+     inside min(), the 560px still governs everything narrower -- nothing below
+     roughly 2307px of stage width moves at all.
+
+     97cqw, not 92: on a phone the width cap is the binding one and those five
+     points are 19px of goal on a 390 screen. */
+  --gw: min(97cqw, 135cqh, max(560px, 100cqw * 437 / 1790));
   --goal-h: calc(var(--gw) * 158 / 437);
-  --goal-base: calc(46.5% + var(--goal-h) / 2);
+
+  /* Where the goal's centre sits in the pitch. One variable because three
+     rules need the same answer -- this one, .goal's top and the plate's top --
+     and the plate's is what registers the photograph against the goal. Change
+     it in two of the three and the painted posts walk off .goal, which is a
+     fault this file has already had twice.
+
+     It is not one number, because the two ends see different pictures. The
+     plate is sized in goal widths, so on a phone it is nearly four times the
+     stage's width and only a crop of the middle of the photograph is on
+     screen -- dark stand, no floodlights -- and 110px of it sat between the
+     tagline and the crossbar. On a desktop the whole photograph fits and that
+     space is the stand and the floodlights, which is the composition rather
+     than a gap. So the goal rides high on a phone and drops back to where it
+     was drawn once there is room for the picture around it. */
+  --goal-mid: 36%;
+  --goal-base: calc(var(--goal-mid) + var(--goal-h) / 2);
+}
+
+/* Wide enough for the whole photograph: the goal returns to 46.5%, where the
+   composition was drawn, and the stand and the floodlights above it are the
+   picture rather than a gap. Below this the plate is a crop and the goal
+   rides high -- see --goal-mid above. A step rather than a ramp: the two are
+   different compositions, not one being stretched. */
+@container viewport (min-width: 900px) {
+  .pitch { --goal-mid: 46.5%; }
 }
 
 /* The stadium plate. Sized and placed so the painted goal lands exactly on
@@ -277,7 +316,7 @@
      at a 560px goal -- measured against the posts at six viewport sizes, the
      same offset scaled at every one of them. What has to register here is the
      goal, not the frame around it, so the plate is positioned by the goal. */
-  top: calc(46.5% - var(--goal-h) / 2 - var(--gw) * 523 / 437);
+  top: calc(var(--goal-mid) - var(--goal-h) / 2 - var(--gw) * 523 / 437);
   width: calc(var(--gw) * 1800 / 437);
   height: calc(var(--gw) * 1208 / 437);
   margin-left: calc(var(--gw) * -899.5 / 437);
@@ -315,7 +354,7 @@
 .goal {
   position: absolute;
   left: 50%;
-  top: 46.5%;
+  top: var(--goal-mid);
   transform: translate(-50%, -50%);
   z-index: 1;
   width: var(--gw);
