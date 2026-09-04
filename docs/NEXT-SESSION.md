@@ -23,6 +23,8 @@ Live: **https://design-mkt-1.github.io/tw-penalty/**
 | 7. Footer | done — `c27eb9f`, `ddf76cb` |
 | 8. Deploy | done and verified on the live URL |
 | 9. Handoff | this file |
+| Accessibility audit | done — `823d7b8` |
+| Composition pass | done — `df33024`, `b6ca8c7` |
 
 **Everything buildable is built.** What is left is one gate that cannot be
 closed from a desk, one decision that belongs to the client, and three declared
@@ -88,10 +90,25 @@ glove four points of the goal's width short of that centre. The panel centres
 must be read rather than computed: `.panels` sets its gap and padding in
 `clamp()`, so they move with the goal's size.
 
-The two centre poses are deliberately not solved. Both would have to leave the
-ground to reach their panel's centre — `jump_center` already reaches above it,
-and `jump_center_down` kneels on the goal line — so they keep zero and get their
-read from the pose, which is why each has its own render.
+The two centre poses are deliberately not translated. Both would have to leave
+the ground to reach their panel's centre — `jump_center` already reaches above
+it, and `jump_center_down` kneels on the goal line — so they keep zero and get
+their read from the pose, which is why each has its own render.
+
+**The airborne poses carry a scale, and it is a correction.** The generator drew
+the character about a fifth smaller in every pose where he is off the ground.
+Measured on the head, the one landmark a dive does not stretch: 53px wide
+standing, 42 to 45 in the air. Each airborne pose is scaled back to the standing
+head width and its translation re-solved with that scale applied.
+
+**The plate must cover the stage, and the goal's centre is not one number.**
+`--gw` carries a floor — `max(560px, 100cqw * 437 / 1790)` — so the plate is
+never narrower than the pitch; below about 2307px of stage width the 560px cap
+still governs and nothing moves. `--goal-mid` is 36% on a phone and 46.5% from
+900px up, because the plate is nearly four times the stage's width on a phone
+and only a dark crop of the photograph is on screen, while on a desktop the
+whole picture fits and the space above the crossbar is the stand and the
+floodlights rather than a gap.
 
 ## Decisions, with their reasons
 
@@ -171,6 +188,23 @@ by regenerating `pitch-spot.webp` byte-identical.
 - **`python -m http.server` sends no `Cache-Control`,** so Chrome caches
   stylesheets heuristically. A fix that "does not apply" is usually the old file
   still in the page; confirm against `document.styleSheets` before diagnosing.
+- **A hidden tab pauses `requestAnimationFrame`.** Driving the page from a
+  script in a background tab stalls the shot sequence at `data-state="shooting"`
+  with no error, no message and the attempt counter already incremented. That is
+  the harness, not the page — check `document.visibilityState` before hunting.
+- **A container query measures the container's CONTENT box, and a container
+  cannot be styled by its own query.** Both are why the card's desktop
+  geometry hangs off `.sheet` rather than `.card`: at 504 wide with 24 of
+  padding the card queried as 454, and `.card { padding: 36px }` inside its own
+  query could never have applied.
+- **The generator draws the keeper smaller whenever he is airborne.** About a
+  fifth, consistently, on both services. Measured on the head — 53px wide
+  standing, 42 to 45 in the air — because feet lines and silhouette heights, the
+  checks that caught everything else, do not exist on a body in flight. The four
+  airborne poses carry a `scale` in `POSES` to correct it. Check the head on any
+  regenerated dive, and re-solve the offsets afterwards: scaling about the feet
+  moves the glove, and keeping the old numbers left the gloves 1.7 points short
+  of their panels instead of 4.
 
 ## Verification
 
@@ -210,6 +244,14 @@ checklist names are handled. Two more are reasoned rather than observed: the
 card's active tab is redrawn as a border there, since a colour-filled bar would
 vanish, and the consent checkbox is an `appearance: none` control whose tick is
 a background image — the usual hazard in that mode, and untested.
+
+**A browser audit closed five defects and is worth repeating after changes.**
+Accessible names on the email and phone fields (their shells are `<label>`s
+now, which also turned a 17px tap target into 47); five texts under WCAG AA,
+including the CTA at 3.44:1, all now over 4.5; `role="tab"` wired to real
+tabpanels; every target at or over 24px; and a single `<h1>`. Clean on the rest:
+no duplicate ids, no dangling `aria-*`, no positive `tabindex`, complete i18n
+coverage, zero third-party requests, no console errors.
 
 **One decision for the client.** A first visit honours the browser's language
 before falling back to Ukrainian, which is the behaviour this file's `detect()`
