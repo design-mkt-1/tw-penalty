@@ -15,13 +15,18 @@ the shot goes.
 import numpy as np
 from PIL import Image
 
+# These three are duplicated in js/fx.js as BALL_FRAMES, BALL_COLS and
+# BALL_CELL, which is how the reader knows where each frame starts. Changing
+# them here alone does not raise anything: the sheet is still a valid image,
+# the reader still slices it, and the ball in flight is quietly cut from the
+# wrong cells. Change both sides or neither.
 FRAMES = 24          # one revolution
 SIZE   = 176         # per frame, px
 COLS   = 6
 
 WHITE  = np.array([242, 242, 240], float)
-LIME   = np.array([176, 235,  20], float)
-PURPLE = np.array([124,  26, 214], float)
+ORANGE = np.array([255,  69,   0], float)   # Orange Fire, brandbook
+NAVY   = np.array([ 25,  25, 112], float)   # Midnight Navy, brandbook
 SEAM   = np.array([ 32,  30,  36], float)
 
 def face_centres():
@@ -57,12 +62,12 @@ def face_centres():
 PENT, HEX = face_centres()
 CENTRES = np.vstack([PENT, HEX])
 
-# Six lime pentagons and six purple ones, split by the sign of z so the two
-# colours land on opposite caps and every view shows both.
+# Six orange pentagons and six navy ones, the two hero colours, split by the
+# sign of z so they land on opposite caps and every view shows both.
 COLOUR = np.zeros((len(CENTRES), 3))
 order = np.argsort(PENT[:, 2])
 for rank, idx in enumerate(order):
-    COLOUR[idx] = LIME if rank % 2 == 0 else PURPLE
+    COLOUR[idx] = ORANGE if rank % 2 == 0 else NAVY
 COLOUR[len(PENT):] = WHITE
 
 def rot_y(a):
@@ -106,17 +111,35 @@ def render(angle):
     out = np.dstack([rgb, a * 255]).astype('uint8')
     return Image.fromarray(out, 'RGBA')
 
+import os
+
+# Straight to where the page reads them. These used to be ball_still.webp and
+# ball_spin.webp in the working directory, which left a rename between running
+# the script and having a ball -- a step recorded nowhere. The art is kept out
+# of git on the grounds that this recipe reproduces it, so the recipe has to
+# land its output without anyone remembering anything.
+HERE  = os.path.dirname(os.path.abspath(__file__))
+ROOT  = os.path.dirname(HERE)
+IMG   = os.path.join(ROOT, 'assets', 'img')
+STILL = os.path.join(IMG, 'ball.webp')
+SPIN  = os.path.join(IMG, 'ball-spin.webp')
+
 rows = -(-FRAMES // COLS)
 sheet = Image.new('RGBA', (COLS * SIZE, rows * SIZE), (0, 0, 0, 0))
 for i in range(FRAMES):
     f = render(i / FRAMES * 2 * np.pi)
     sheet.paste(f, ((i % COLS) * SIZE, (i // COLS) * SIZE))
     if i == 0:
-        f.resize((384, 384), Image.LANCZOS).save('ball_still.webp', 'WEBP',
+        f.resize((384, 384), Image.LANCZOS).save(STILL, 'WEBP',
                                                  quality=92, method=6)
-sheet.save('ball_spin.webp', 'WEBP', quality=88, method=6)
+sheet.save(SPIN, 'WEBP', quality=88, method=6)
 
-import os
-print('sheet', sheet.size, os.path.getsize('ball_spin.webp'), 'bytes')
-print('still', os.path.getsize('ball_still.webp'), 'bytes')
-sheet.convert('RGB').save('ball_spin_preview.png')
+print('sheet', sheet.size, os.path.getsize(SPIN), 'bytes ->', SPIN)
+print('still', os.path.getsize(STILL), 'bytes ->', STILL)
+
+# The flat preview is for looking at, not for serving. raw/ is gitignored and
+# is excluded from the Pages upload by the allowlist in the deploy workflow;
+# assets/ is copied wholesale, so a debug PNG left there would be published.
+RAW = os.path.join(ROOT, 'raw')
+os.makedirs(RAW, exist_ok=True)
+sheet.convert('RGB').save(os.path.join(RAW, 'ball_spin_preview.png'))
