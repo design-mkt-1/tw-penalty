@@ -28,6 +28,7 @@
 <link rel="stylesheet" href="css/stage.css">
 <link rel="stylesheet" href="css/game.css">
 <link rel="stylesheet" href="css/form.css">
+<link rel="stylesheet" href="css/footer.css">
 </head>
 <body>
 
@@ -128,6 +129,33 @@
     <div class="ball-zone">
       <button class="ball" type="button" data-i18n-attr="aria-label:ball.shoot"></button>
     </div>
+
+    <!-- ── footer ─────────────────────────────────────────────── -->
+    <!-- Figma 19:3717 mobile, 19:3624 desktop. Two arrangements, not one
+         scaled: the mobile node stacks the payments over a rule over the
+         copyright, the desktop node puts the logo and the copyright on the
+         left and the payments on the right. The second is a third shorter,
+         which on a page that cannot scroll is height the pitch keeps. -->
+    <footer class="ftr">
+      <a class="ftr__logo" aria-label="Top Win">
+        <img src="assets/img/logo-topwin.svg" alt="" width="96" height="17">
+      </a>
+
+      <div class="ftr__pay">
+        <p class="ftr__label" data-i18n="footer.pay">Способи оплати</p>
+        <!-- Sized one by one: three aspect ratios between four marks, so a
+             single shared rule stretches the round ones. See
+             assets/img/icons/PAYMENTS-NOTICE.txt. -->
+        <ul class="ftr__marks">
+          <li class="ftr__badge"><img class="ftr__mark ftr__mark--visa" src="assets/img/icons/pay-visa.svg" alt="Visa" width="74" height="24"></li>
+          <li class="ftr__badge"><img class="ftr__mark ftr__mark--mc" src="assets/img/icons/pay-mastercard.svg" alt="Mastercard" width="39" height="24"></li>
+          <li class="ftr__badge"><img class="ftr__mark" src="assets/img/icons/pay-tether.svg" alt="Tether" width="24" height="24"></li>
+          <li class="ftr__badge"><img class="ftr__mark" src="assets/img/icons/pay-bitcoin.svg" alt="Bitcoin" width="24" height="24"></li>
+        </ul>
+      </div>
+
+      <p class="ftr__copy" data-i18n="footer.copy">© 2026 Усі права захищені</p>
+    </footer>
 
     <!-- ── ball in flight, shadows, net and confetti ──────────── -->
     <canvas class="fx" aria-hidden="true"></canvas>

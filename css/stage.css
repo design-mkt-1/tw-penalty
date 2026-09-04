@@ -68,7 +68,29 @@ html, body {
   .tagline   { grid-area: tagline; align-self: end; }
   .ball-zone { grid-area: ball; }
 
+  /* ── the #stage prefix on the next two rules is load-bearing ──
+     A container query does not change specificity. These two properties are
+     also declared, for the same class, in stylesheets that load AFTER this
+     one -- .tagline's padding in css/game.css, .ftr's display in
+     css/footer.css -- so at a flat 0-1-0 the later file simply won and both
+     overrides did nothing at all. The grid-area rules above need no prefix
+     because nothing else sets grid-area.
+
+     The tagline half of this was inherited broken from the reference project
+     and measured here: in landscape the padding computed to 12px 40px 10px,
+     the portrait value, which is precisely what the comment below says must
+     not happen. Do not "tidy" these selectors back down to the class alone. */
+
   /* The side column is a third of the width; the portrait padding would eat
      most of it. */
-  .tagline { padding: clamp(8px, 2cqh, 18px) clamp(10px, 1.6cqw, 22px); }
+  #stage .tagline { padding: clamp(8px, 2cqh, 18px) clamp(10px, 1.6cqw, 22px); }
+
+  /* The footer is dropped here rather than squeezed. This is the one layout
+     with no vertical room to give -- it exists because a stacked column
+     already leaves the goal a few dozen pixels -- and a band across the
+     bottom would take them. The rule lives with the rest of this layout's
+     decisions instead of in css/footer.css, so the condition is written
+     once: a second copy of it there would drift the first time either moved.
+     Everywhere else the footer compresses and stays. */
+  #stage .ftr { display: none; }
 }

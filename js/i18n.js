@@ -84,7 +84,9 @@
       'done.password':  'Password:',
       'done.copy':      'Copy',
       'done.note':      'Save your login details',
-      'cta.website':    'GO TO WEBSITE'
+      'cta.website':    'GO TO WEBSITE',
+      'footer.pay':     'Payment methods',
+      'footer.copy':    '© 2026 All rights reserved'
     },
 
     /* The default, the fallback, and the only table read straight off the
@@ -135,7 +137,11 @@
       'done.password':  'Пароль:',
       'done.copy':      'Копіювати',
       'done.note':      'Збережіть ваші дані для входу',
-      'cta.website':    'ПЕРЕЙТИ НА САЙТ'
+      'cta.website':    'ПЕРЕЙТИ НА САЙТ',
+      /* The year is the design's, not the clock's: it is copy the client set,
+         so it changes when they change it rather than on 1 January. */
+      'footer.pay':     'Способи оплати',
+      'footer.copy':    '© 2026 Усі права захищені'
     },
 
     ru: {
@@ -186,7 +192,9 @@
       'done.password':  'Пароль:',
       'done.copy':      'Копировать',
       'done.note':      'Сохраните свои данные для входа',
-      'cta.website':    'ПЕРЕЙТИ НА САЙТ'
+      'cta.website':    'ПЕРЕЙТИ НА САЙТ',
+      'footer.pay':     'Способы оплаты',
+      'footer.copy':    '© 2026 Все права защищены'
     }
   };
 
