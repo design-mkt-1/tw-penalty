@@ -190,6 +190,23 @@
 .card .tab.is-active { color: var(--second); }
 .card .tab.is-active::after { background: var(--second); }
 
+/* Which tab is active is carried by a colour and a colour-filled bar, and
+   forced-colors discards both: background-color is replaced by the user's own
+   and every tab's text lands on the same CanvasText, so EMAIL and ТЕЛЕФОН
+   become indistinguishable. Borders survive the mode -- recoloured, but drawn
+   -- so the bar is redrawn as one. Highlight is the system colour for a
+   selected thing, which is what this is.
+
+   Reasoned from the spec rather than observed: real Windows High Contrast is
+   the one check that cannot be run from this desk, and it is on the same list
+   as the phone gate. */
+@media (forced-colors: active) {
+  .card .tab.is-active::after {
+    height: 0;
+    border-top: 3px solid Highlight;
+  }
+}
+
 /* ── fields ───────────────────────────────────────────────── */
 
 .card .fields { display: flex; flex-direction: column; gap: 16px; }

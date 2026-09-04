@@ -265,10 +265,22 @@
   position: absolute;
   z-index: -1;
   left: 50%;
-  top: calc(46.5% - var(--goal-h) / 2 - var(--gw) * 1.1968);
-  width: calc(var(--gw) * 4.1190);
-  height: calc(var(--gw) * 2.7643);
-  margin-left: calc(var(--gw) * -2.0595);
+  /* The measurements themselves, divided by 437, rather than five-figure
+     decimal copies of them: 4.1190, 2.7643, 1.1968 and -2.0595 were correct to
+     their last digit but they are copies, and the numbers now read as what the
+     comment above says they are.
+
+     -899.5, not -900, and that half pixel is the photograph rather than a
+     rounding: the posts stand at 681 and 1118, so the painted goal's centre is
+     at 899.5 of the 1800, half a pixel left of the image's own centre. Hanging
+     the plate off the image centre put .goal 0.64px right of the painted goal
+     at a 560px goal -- measured against the posts at six viewport sizes, the
+     same offset scaled at every one of them. What has to register here is the
+     goal, not the frame around it, so the plate is positioned by the goal. */
+  top: calc(46.5% - var(--goal-h) / 2 - var(--gw) * 523 / 437);
+  width: calc(var(--gw) * 1800 / 437);
+  height: calc(var(--gw) * 1208 / 437);
+  margin-left: calc(var(--gw) * -899.5 / 437);
   /* The vignette rides on the plate rather than on a layer of its own. It used
      to be a separate element the size of .pitch, and in landscape the pitch is
      only the left column -- so the vignette stopped dead at x 540 of an 844px
@@ -283,15 +295,23 @@
 
 /* == goal ===================================================== */
 
-/* Draws nothing. It is the painted goal's box, to the pixel: 690 x 248 of the
-   2752px render, centred on the image and so on the pitch, with its bottom
-   edge on the goal line. Everything the game shows inside the goal -- the
-   panels, the keeper, the strike ring -- is a percentage of this box, so all
-   of it stays registered to the photograph at any size.
+/* Draws nothing. It is the painted goal's box, to the pixel: 437 x 158 of the
+   1800px plate, centred on the image and so on the pitch, with its bottom edge
+   on the goal line. Everything the game shows inside the goal -- the panels,
+   the keeper, the strike ring -- is a percentage of this box, so all of it
+   stays registered to the photograph at any size.
 
-   2.78:1 is close to a real goal's 7.32 by 2.44, which is 3.0. The sprite it
-   replaces was 1.93:1, which is why the old composition needed a keeper very
-   nearly as tall as the goal was wide. */
+   2.77:1 is close to a real goal's 7.32 by 2.44, which is 3.0. The sprite this
+   replaced was 1.93:1, which is why the old composition needed a keeper very
+   nearly as tall as the goal was wide.
+
+   The ratio has to be the same measurement --goal-h above is built from. It
+   was not: this rule kept 690/248 = 2.7823, the reference project's render,
+   after d280b7a re-measured the plate and gave --goal-h the Top Win 158/437 =
+   2.7658. One goal, two heights, and the box lost 0.6% of its own height --
+   1.2px at a 560px goal, measured against the painted posts. The panels and
+   the keeper hang off this box, so they were all short by that much. Keep the
+   two in step, or better, do not restate the measurement here at all. */
 .goal {
   position: absolute;
   left: 50%;
@@ -299,7 +319,7 @@
   transform: translate(-50%, -50%);
   z-index: 1;
   width: var(--gw);
-  aspect-ratio: 690 / 248;
+  aspect-ratio: 437 / 158;
   /* inline-size, not size: the labels and gaps below want cqw of the goal,
      and inline-size cannot fight the aspect-ratio that sets the height. */
   container: goal / inline-size;
