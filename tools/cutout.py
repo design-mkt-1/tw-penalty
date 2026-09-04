@@ -12,10 +12,8 @@ Two different keying strategies, because the subjects differ:
           background predicate is flood-filled in from the frame edge, so
           achromatic parts *inside* the subject (black undershorts) survive.
 * rgba  — the source already carries its alpha and only needs resizing.
-          The four poses added later are kept in raw/ already keyed, as
-          lossless WebP: the repo is public and every byte of raw/ is served
-          from it, and a keyed 1696x2528 RGBA WebP is 900 kB against the
-          3.7 MB the flat-grey PNG it came from costs.
+          No Top Win pose uses this: all eight are generated onto flat grey in
+          one session. It is kept for a source that arrives already keyed.
 
 Usage:
     python tools/cutout.py
@@ -35,24 +33,32 @@ RAW = os.path.join(ROOT, 'raw')
 QUALITY = {}
 
 # Keeper poses are exported on the FULL uncropped canvas. Every raw render
-# shares the same 1696x2528 frame and camera, so keeping the canvas keeps every
+# shares the same 3392x5056 frame and camera, so keeping the canvas keeps every
 # pose in one coordinate space: swapping the sprite cannot make the character
 # jump in size or position. Trimming each pose to its own bounding box would
 # destroy that, because a sprawling low dive and an upright idle have wildly
 # different bounding boxes.
 #
+# Holding one camera across eight generations was expected to need a
+# normalisation pass between generation and keying -- measure the feet line and
+# the figure height in each render, align them all onto a common canvas. It did
+# not: passing the chosen idle back as the character reference held the camera
+# on its own. Measured on the keyed renders, the feet line sits at .934, .935
+# and .934 of the canvas for idle, cheer and beaten, and the figure spans .856
+# and .858 of it for idle and cheer. That is inside a thousandth, so there is
+# nothing for an alignment step to correct. Generate against the reference, and
+# check these two numbers on every new pose rather than trusting the next one.
+#
 # name -> (source, key mode, keep-largest-blob, trim, target height, target width)
 JOBS = {
-    'keeper-idle':        ('_raw-keeper-idle.png', 'grey',    True,  False, 640, None),
-    'keeper-jump_R2':     ('_raw-jump_R2.png',     'grey',    True,  False, 640, None),
-    'keeper-jump_L1':     ('_raw-jump_L1.png',     'grey',    True,  False, 640, None),
-    'keeper-jump_center': ('_raw-jump_center.png', 'grey',    True,  False, 640, None),
-
-    # Added later, and already keyed in raw/ -- see the module docstring.
-    'keeper-ready':       ('_raw-keeper-ready.webp',      'rgba', False, False, 640, None),
-    'keeper-cheer':       ('_raw-keeper-cheer.webp',      'rgba', False, False, 640, None),
-    'keeper-beaten':      ('_raw-keeper-beaten.webp',     'rgba', False, False, 640, None),
-    'keeper-jump_center_down': ('_raw-jump_center_down.webp', 'rgba', False, False, 640, None),
+    'keeper-idle':             ('_raw-keeper-idle.png',      'grey', True, False, 640, None),
+    'keeper-ready':            ('_raw-ready.png',            'grey', True, False, 640, None),
+    'keeper-jump_L1':          ('_raw-jump_L1.png',          'grey', True, False, 640, None),
+    'keeper-jump_R2':          ('_raw-jump_R2.png',          'grey', True, False, 640, None),
+    'keeper-jump_center':      ('_raw-jump_center.png',      'grey', True, False, 640, None),
+    'keeper-jump_center_down': ('_raw-jump_center_down.png', 'grey', True, False, 640, None),
+    'keeper-cheer':            ('_raw-cheer.png',            'grey', True, False, 640, None),
+    'keeper-beaten':           ('_raw-beaten.png',           'grey', True, False, 640, None),
 }
 
 # The goal is no longer a sprite: it is painted into assets/img/pitch-spot.webp
