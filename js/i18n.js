@@ -5,15 +5,26 @@
    nothing else. Nodes opt in with data-i18n="key"; attributes with
    data-i18n-attr="attr:key" (semicolon-separated for more than one).
 
-   Uzbek is written in Latin script for this market, so there is no RTL work.
-   The apostrophe in oʻ and gʻ is U+02BB, which the latin subset of the
-   Montserrat cut carries -- see the @font-face block in css/tokens.css. */
+   Ukrainian is the default and the fallback, so its table is the one that has
+   to be complete: t() falls through to it for anything a locale is missing,
+   and a key missing from the fallback too renders as the key itself. */
 (function () {
   'use strict';
 
-  var LANGS = ['uz', 'ru', 'en'];
-  var FALLBACK = 'en';
+  var LANGS = ['ua', 'ru', 'en'];
+  var FALLBACK = 'ua';
   var STORE_KEY = 'tw-lang';
+
+  /* "ua" is the code the design, the menu and this file use, and it is not a
+     language tag: ua is the REGION subtag for Ukraine, and the language is
+     uk. The distinction only matters where a real tag is required, so the
+     internal code is mapped rather than renamed -- documentElement.lang is
+     what a screen reader picks a voice and a pronunciation from, and lang="ua"
+     asks it to read Ukrainian as something that does not exist.
+
+     detect() reads through the same map, so a browser reporting uk-UA matches
+     the Ukrainian locale rather than falling through to the default by luck. */
+  var LOCALE = { ua: 'uk', ru: 'ru', en: 'en' };
 
   /* \n means a real line break in the rendered text -- only the tagline uses
      it, and it is the reason the markup no longer carries a <br>. */
@@ -76,45 +87,55 @@
       'cta.website':    'GO TO WEBSITE'
     },
 
-    uz: {
-      'title':          'Top Win — Penaltini uring va yuting!',
-      'hdr.sound':      'Ovozni yoqish yoki oʻchirish',
-      'hdr.lang':       'Til',
-      'tagline':        'Penaltini uring\nva yuting!',
-      'goal.aim':       'Qayerga urishni tanlang',
-      'cell.tl':        'Yuqori chap',
-      'cell.tc':        'Yuqori oʻrta',
-      'cell.tr':        'Yuqori oʻng',
-      'cell.bl':        'Pastki chap',
-      'cell.bc':        'Pastki oʻrta',
-      'cell.br':        'Pastki oʻng',
-      'ball.shoot':     'Tasodifiy joyga urish',
-      'msg.miss':       'Ozgina qoldi! Yana urinib koʻring',
-      'msg.goal':       'GOL!',
-      'promo.sport':    'sport',
-      'promo.bonus':    'bonus',
-      'promo.sub':      'yoki (AMOUNT) gacha + 150 FS',
-      'tabs.label':     'Roʻyxatdan oʻtish usuli',
-      'tab.phone':      'TELEFON',
+    /* The default, the fallback, and the only table read straight off the
+       design. Every string from 'promo.title' down is the card's own copy,
+       transcribed from the Figma nodes rather than translated -- these are the
+       words the client signed off, apostrophes and casing included. The game
+       strings above them are ours: the pitch is not in the design. */
+    ua: {
+      'title':          'Top Win — Заб’єш пенальті та виграєш!',
+      'hdr.sound':      'Увімкнути або вимкнути звук',
+      'hdr.lang':       'Мова',
+      'tagline':        'Заб’єш пенальті\nта виграєш!',
+      'goal.aim':       'Оберіть, куди бити',
+      'cell.tl':        'Угорі ліворуч',
+      'cell.tc':        'Угорі по центру',
+      'cell.tr':        'Угорі праворуч',
+      'cell.bl':        'Унизу ліворуч',
+      'cell.bc':        'Унизу по центру',
+      'cell.br':        'Унизу праворуч',
+      'ball.shoot':     'Удар у випадкову точку',
+      'msg.miss':       'Так близько! Ще спроба',
+      'msg.goal':       'ГОЛ!',
+      'promo.title':    'Вітальний спортивний бонус',
+      'promo.pct':      '225%',
+      'promo.amount':   'до 15000 UAH',
+      'tabs.label':     'Спосіб реєстрації',
+      'tab.phone':      'ТЕЛЕФОН',
       'tab.email':      'EMAIL',
-      'field.country':  'Mamlakat kodi',
-      'field.phone':    '90 123 45 67',
-      'field.email':    'siz@example.com',
-      'field.bonus':    'Bonusni tanlang',
-      'err.phone':      'Telefon raqami notoʻgʻri',
-      'err.email':      'Email manzili notoʻgʻri',
-      'bonus.casino':   'Kazino bonusi',
-      'bonus.sport':    'Sport bonusi',
-      'bonus.none':     'Bonussiz',
-      'cta.continue':   'DAVOM ETISH',
-      'foot.have':      'Akkauntingiz bormi?',
-      'foot.login':     'Kirish',
-      'done.title':     'Roʻyxatdan oʻtdingiz!',
-      'done.sub':       'Xavfsiz akkauntingiz yaratildi.',
-      'done.phone':     'AKKAUNT TELEFONI',
-      'done.email':     'AKKAUNT EMAILI',
-      'done.password':  'PAROL',
-      'cta.website':    'SAYTGA OʻTISH'
+      'field.email':    'Email',
+      'field.phone':    '00 000 0000',
+      'field.password': 'Пароль',
+      'field.passwordHint': 'Введіть пароль',
+      'field.reveal':   'Показати пароль',
+      'err.phone':      'Невірний номер телефону',
+      'err.email':      'Невірна адреса електронної пошти',
+      'err.password':   'Пароль занадто короткий',
+      'agree.aria':     'Мені 18 років, і я приймаю умови',
+      'agree.pre':      'Мені 18 років, і я приймаю ',
+      'agree.terms':    'Умови Використання',
+      'agree.mid':      ' та ',
+      'agree.privacy':  'Політику конфіденційності',
+      'agree.post':     '.',
+      'cta.register':   'ЗАРЕЄСТРУВАТИСЬ',
+      'foot.have':      'Вже є акаунт?',
+      'foot.login':     'Увійти',
+      'done.title':     'Реєстрація успішна!',
+      'done.login':     'Логін:',
+      'done.password':  'Пароль:',
+      'done.copy':      'Копіювати',
+      'done.note':      'Збережіть ваші дані для входу',
+      'cta.website':    'ПЕРЕЙТИ НА САЙТ'
     },
 
     ru: {
@@ -132,35 +153,45 @@
       'ball.shoot':     'Удар в случайную точку',
       'msg.miss':       'Так близко! Ещё попытка',
       'msg.goal':       'ГОЛ!',
-      'promo.sport':    'спорт',
-      'promo.bonus':    'бонус',
-      'promo.sub':      'или до (AMOUNT) + 150 FS',
+      /* Written, not transcribed. The Figma page carries the card in
+         Ukrainian only -- fourteen variants, all UA -- so unlike the block
+         above, this half of the Russian table has never been read by the
+         designer or by a native speaker. The offer figures are the exception:
+         225% and the amount are the same string in every locale. */
+      'promo.title':    'Приветственный спортивный бонус',
+      'promo.pct':      '225%',
+      'promo.amount':   'до 15000 UAH',
       'tabs.label':     'Способ регистрации',
       'tab.phone':      'ТЕЛЕФОН',
       'tab.email':      'EMAIL',
-      'field.country':  'Код страны',
-      'field.phone':    '90 123 45 67',
-      'field.email':    'vy@example.com',
-      'field.bonus':    'Выберите бонус',
+      'field.email':    'Email',
+      'field.phone':    '00 000 0000',
+      'field.password': 'Пароль',
+      'field.passwordHint': 'Введите пароль',
+      'field.reveal':   'Показать пароль',
       'err.phone':      'Неверный номер телефона',
       'err.email':      'Неверный адрес почты',
-      'bonus.casino':   'Бонус казино',
-      'bonus.sport':    'Спортивный бонус',
-      'bonus.none':     'Без бонуса',
-      'cta.continue':   'ПРОДОЛЖИТЬ',
+      'err.password':   'Пароль слишком короткий',
+      'agree.aria':     'Мне 18 лет, и я принимаю условия',
+      'agree.pre':      'Мне 18 лет, и я принимаю ',
+      'agree.terms':    'Условия использования',
+      'agree.mid':      ' и ',
+      'agree.privacy':  'Политику конфиденциальности',
+      'agree.post':     '.',
+      'cta.register':   'ЗАРЕГИСТРИРОВАТЬСЯ',
       'foot.have':      'Уже есть аккаунт?',
       'foot.login':     'Войти',
       'done.title':     'Регистрация успешна!',
-      'done.sub':       'Ваш защищённый аккаунт создан.',
-      'done.phone':     'ТЕЛЕФОН АККАУНТА',
-      'done.email':     'ПОЧТА АККАУНТА',
-      'done.password':  'ПАРОЛЬ',
+      'done.login':     'Логин:',
+      'done.password':  'Пароль:',
+      'done.copy':      'Копировать',
+      'done.note':      'Сохраните свои данные для входа',
       'cta.website':    'ПЕРЕЙТИ НА САЙТ'
     }
   };
 
   /* Shown inside the menu, so each language names itself. Never translated. */
-  var ENDONYM = { uz: 'Oʻzbekcha', ru: 'Русский', en: 'English' };
+  var ENDONYM = { ua: 'Українська', ru: 'Русский', en: 'English' };
 
   var lang = FALLBACK;
   var watchers = [];
@@ -204,7 +235,8 @@
       });
     });
 
-    document.documentElement.lang = lang;
+    // The tag, not our internal code -- see LOCALE at the top of the file.
+    document.documentElement.lang = LOCALE[lang] || lang;
   }
 
   function set(next) {
@@ -221,8 +253,16 @@
     var saved = null;
     try { saved = localStorage.getItem(STORE_KEY); } catch (e) { /* private mode */ }
     if (LANGS.indexOf(saved) >= 0) return saved;
+
+    /* Matched against the real language tags, not against our own codes: a
+       Ukrainian browser reports uk-UA, which never equals "ua". Comparing the
+       two directly landed every Ukrainian visitor on the fallback and only
+       looked correct because the fallback is Ukrainian. */
     var nav = (navigator.language || '').slice(0, 2).toLowerCase();
-    return LANGS.indexOf(nav) >= 0 ? nav : FALLBACK;
+    for (var i = 0; i < LANGS.length; i++) {
+      if (LOCALE[LANGS[i]] === nav) return LANGS[i];
+    }
+    return FALLBACK;
   }
 
   /* ── selector ─────────────────────────────────────────────── */

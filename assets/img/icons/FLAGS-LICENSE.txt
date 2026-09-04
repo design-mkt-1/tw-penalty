@@ -8,11 +8,6 @@ the fonts are: no visitor request reaches a third party.
   flag-ru.svg  Russia       - language RU
   flag-gb.svg  United Kingdom - language EN
 
-  flag-uz.svg  Uzbekistan   - inherited from fs-penalty, whose languages were
-                             UZ/RU/EN. Still referenced by index.html and the
-                             uz locale in js/i18n.js; both go in Etapa 6 and
-                             this file goes with them.
-
 ----------------------------------------------------------------
 
 The MIT License (MIT)
