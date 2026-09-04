@@ -40,19 +40,35 @@
      differently. Averaged, because that difference is arithmetic rather than
      composition.
 
-     The two centre poses are deliberately NOT solved. Both would have to
+     The two centre poses are deliberately NOT translated. Both would have to
      leave the ground to reach their panel's centre: jump_center already
      reaches above it and would have to sink his feet below the goal line to
      come down to it, and jump_center_down is kneeling on that line and would
      have to hover. They keep x and y at zero and get their read from the
-     pose, which is why each has its own render. */
+     pose, which is why each has its own render.
+
+     The scales are a correction, not a flourish. Every pose where the keeper
+     is off the ground came back from the generator with the character drawn
+     smaller than the ones where he is standing on it -- measured on the head,
+     which is the landmark a dive does not stretch: 53px wide on idle, 53 on
+     jump_center_down, 53-59 across the standing poses, against 42-45 on all
+     four airborne ones. He shrank the moment he jumped, which is what a
+     visitor sees and what the earlier check missed: it compared feet lines and
+     silhouette heights, and neither exists on a body in the air.
+
+     So each airborne pose is scaled back to the standing head width -- 53/42
+     for the low dives and the centre leap, 53/44 for the high dives -- and the
+     translations above were re-solved with that scale applied, because scaling
+     about the feet moves the glove. Correcting it in the sprite instead would
+     mean scaling the figure inside a fixed canvas, and the low dive already
+     spans .88 of its width: it would lose its gloves off the edge. */
   var POSES = {
     idle:             { x:      0, y:      0, scale: 1    },
-    jump_L1:          { x: -86.28, y:  23.82, scale: 1    },  // low  left
-    jump_L2:          { x: -88.21, y:   0.71, scale: 1, air: true },  // high left
-    jump_R1:          { x:  86.28, y:  23.82, scale: 1    },  // low  right
-    jump_R2:          { x:  88.21, y:   0.71, scale: 1, air: true },  // high right
-    jump_center:      { x:      0, y:      0, scale: 1.02 },  // high centre
+    jump_L1:          { x: -76.08, y:  39.27, scale: 1.26 },  // low  left
+    jump_L2:          { x: -80.85, y:  17.84, scale: 1.20, air: true },  // high left
+    jump_R1:          { x:  76.08, y:  39.27, scale: 1.26 },  // low  right
+    jump_R2:          { x:  80.85, y:  17.84, scale: 1.20, air: true },  // high right
+    jump_center:      { x:      0, y:      0, scale: 1.26 },  // high centre
     jump_center_down: { x:      0, y:      0, scale: 1    },  // low  centre
 
     /* Three poses that are not dives. They are drawn where they belong on the
