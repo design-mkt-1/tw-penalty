@@ -14,28 +14,45 @@
      own size, and css/game.css sizes the keeper as a share of the goal. So a
      dive lands on the same panel whether the goal renders 260px wide or 560.
 
-     They were rescaled when the goal became the painted one. A percentage of
-     the keeper's own box is only a fixed distance across the goal while the
-     box keeps its proportion to it, and it did not: the box went from 30.6%
-     of the goal's width to 22.95%, and from 45.7% of the width in height to
-     34.2%. The dives kept their numbers and so travelled a quarter less far
-     across a goal that had got wider -- his glove reached 69.9% of the way
-     across for a shot into a panel centred at 81.7%.
+     Solved, not scaled. Every number here was re-derived when the Top Win
+     figure replaced the reference project's, because a percentage of the
+     keeper's own box is only a fixed distance across the goal while the box
+     keeps its proportion to it -- and it did not: css/game.css now sizes the
+     box at 21.81% of the goal's width against 22.95%, off a figure spanning
+     .8562 of its canvas against .809.
 
-     Restored by measurement, not by feel: the old composition put the glove
-     of jump_R2 at 76.5% against a panel centre of 80.5%, four points short,
-     which is what a dive should look like. Getting back to four points short
-     of the new centre wants the horizontal numbers at 1.81x. The vertical
-     ones only wanted 1.07: the goal got flatter as it got wider, so the rows
-     shrank almost as much as the keeper's travel did. The numbers are the old stage pixels over the 110x164 box they
-     were measured in -- -46px of 110 is -41.82%. */
+     The method, for each of the four corner dives: measure where the reaching
+     glove sits inside its own sprite as a fraction of the canvas -- the
+     centroid of the 300 pixels furthest along the direction of the dive, so
+     one stray pixel cannot define it -- then read the rendered panel centre
+     and the rendered keeper box out of the live page and solve for the
+     translation that lands the glove four points of the goal's width short of
+     that centre. Four points short is the relationship the reference
+     composition had, and short is signed by the direction of travel: towards
+     the middle of the goal, not always leftwards.
+
+     The panel centres have to be read from the page rather than computed,
+     because .panels sets its gap and padding in clamp() and the centres move
+     with the goal's size.
+
+     Left and right came out 0.2 apart -- the sprite canvas is 429 wide, so an
+     odd centre column makes a mirrored pair land a fifth of a percent
+     differently. Averaged, because that difference is arithmetic rather than
+     composition.
+
+     The two centre poses are deliberately NOT solved. Both would have to
+     leave the ground to reach their panel's centre: jump_center already
+     reaches above it and would have to sink his feet below the goal line to
+     come down to it, and jump_center_down is kneeling on that line and would
+     have to hover. They keep x and y at zero and get their read from the
+     pose, which is why each has its own render. */
   var POSES = {
     idle:             { x:      0, y:      0, scale: 1    },
-    jump_L1:          { x: -65.81, y:  14.35, scale: 1    },  // low  left
-    jump_L2:          { x: -75.69, y: -19.57, scale: 1    },  // high left
-    jump_R1:          { x:  65.81, y:  14.35, scale: 1    },  // low  right
-    jump_R2:          { x:  75.69, y: -19.57, scale: 1    },  // high right
-    jump_center:      { x:      0, y: -11.75, scale: 1.02 },  // high centre
+    jump_L1:          { x: -86.28, y:  23.82, scale: 1    },  // low  left
+    jump_L2:          { x: -88.21, y:   0.71, scale: 1, air: true },  // high left
+    jump_R1:          { x:  86.28, y:  23.82, scale: 1    },  // low  right
+    jump_R2:          { x:  88.21, y:   0.71, scale: 1, air: true },  // high right
+    jump_center:      { x:      0, y:      0, scale: 1.02 },  // high centre
     jump_center_down: { x:      0, y:      0, scale: 1    },  // low  centre
 
     /* Three poses that are not dives. They are drawn where they belong on the
@@ -365,10 +382,17 @@
      ball gets from TWFx.drawShadow: a diver whose shadow stays the same size
      never looks like he left the ground.
 
-     Offsets are percentages of the shadow's own box. The keeper is 30.6% of
-     the goal wide and the shadow 34%, so p.x% of the keeper is p.x * .9 of
-     the shadow — the same conversion landing() does for the dust plume. */
-  var SHADOW_K = 0.306 / 0.34;
+     Offsets are percentages of the shadow's own box, so they have to be
+     converted out of the keeper's. Both widths are declared in css/game.css
+     and restated here as a ratio: .keeper is 21.81% of the goal wide and
+     .keeper-shadow 25.5%. Change either there and this number is wrong here,
+     silently -- the shadow simply drifts out from under him. Same hazard as
+     the sheet constants shared between tools/ball_sheet.py and js/fx.js.
+
+     The figures this comment used to quote, 30.6% and 34%, matched no
+     stylesheet this project has shipped; the ratio was right and the numbers
+     were two box revisions old. */
+  var SHADOW_K = 0.2181 / 0.255;
 
   PoseAnimator.prototype.playShadow = function (p, duration, soft) {
     if (!this.shadow) return;
@@ -400,28 +424,37 @@
   };
 
   /* Where the keeper's feet land, as a share of the dust plume's own width.
-     The keeper is 30.6% of the goal wide and the plume 26%, so a pose offset
-     of p.x% of the keeper is p.x * .306 / .26 of the plume. game.js uses this
-     to put the puff under him instead of under the middle of the goal. */
+     The same conversion as SHADOW_K and the same hazard: .keeper is 21.81% of
+     the goal wide in css/game.css and .dust 19.5%, so a pose offset of p.x%
+     of the keeper is p.x * .2181 / .195 of the plume. game.js uses this to
+     put the puff under him instead of under the middle of the goal. */
   PoseAnimator.prototype.landing = function (name) {
     var p = POSES[name] || POSES.idle;
-    return (p.x * 1.177).toFixed(1) + '%';
+    return (p.x * 1.1185).toFixed(1) + '%';
   };
 
   /* Where the dive meets the grass, and when.
 
-     Half the poses never come back down: jump_L2, jump_R2 and jump_center all
-     end above the standing line, which is what a negative POSES[..].y means.
+     Two poses never come back down: jump_L2 and jump_R2 end high and wide.
      game.js used to fire the dust plume and a landing shake on `land` for
      every dive, so a keeper still a body-height in the air puffed grass at
      the goal line and shook the camera for an impact that never happened.
 
      The contact a high dive really has is the push-off, on `swap`, under
      where he was standing -- so that is the frame, that is the place, and it
-     is softer than a body hitting the ground. */
+     is softer than a body hitting the ground.
+
+     `air` is a property of the pose now, not an inference from the sign of
+     its y. It used to read `p.y < 0`, which was sound while the translation
+     did the lifting and the sprite was neutral about height. It is not sound
+     any more: the Top Win high-corner render already carries the glove near
+     the top of its own canvas, so the solved translation is +0.71 rather than
+     -19.57 and the old test would have called an airborne keeper landed.
+     Same failure as the hand-written WRONG_WAY table -- a fact inferred from
+     a number that stopped implying it. */
   PoseAnimator.prototype.impact = function (name) {
     var p = POSES[name] || POSES.idle;
-    var airborne = p.y < 0;
+    var airborne = !!p.air;
     return {
       at:    airborne ? TIMING.swap : TIMING.land,
       x:     airborne ? '0%' : this.landing(name),

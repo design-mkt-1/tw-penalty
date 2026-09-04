@@ -542,19 +542,33 @@
 /* Every pose sprite shares one 429x640 canvas and one camera, so the element
    is a fixed box and changing pose only swaps the background image.
 
-   The three numbers are derived, not tuned. On keeper-idle.webp the figure
-   runs from .122 to .931 of the canvas height, so it is .809 of the box. A
-   1.88m keeper against a 2.44m goal is .770 of the goal's height, which makes
-   the box .770 / .809 = 95.24% of it; the canvas is 429/640, so the box is
-   22.95% of the goal's width. And his feet are at .931 of the box, so the box
-   hangs 6.57% of the goal's height below the goal line to stand him on it. */
+   The three numbers are derived, not tuned, and re-derived for the Top Win
+   figure rather than carried over. On keeper-idle.webp the figure runs from
+   .078 to .934 of the canvas height, so it is .8562 of the box -- the
+   reference project's was .809, and that difference alone moves all three.
+
+   A 1.88m keeper against a 2.44m goal is .7705 of the goal's height, so the
+   box is .7705 / .8562 = 89.98% of it. The box's own aspect is the canvas's,
+   429/640, so as a share of the goal's WIDTH the box is
+   89.98% x (158/437) x (429/640) = 21.81%. And his feet are at .9344 of the
+   box, so it hangs (1 - .9344) x 89.98% = 5.91% of the goal's height below
+   the goal line to stand him on it.
+
+   The formula was checked against the reference project's published numbers
+   before being used here: .809 and .931 against its 451.4 x 162.2 goal give
+   95.24% / 22.95% / 6.57%, which is what that project shipped, to within two
+   hundredths of a point.
+
+   Changing any of these three moves every dive, because js/animator.js states
+   the dive offsets as percentages of THIS box. The two are derived together
+   or not at all. */
 .keeper {
   position: absolute;
   z-index: 3;
   left: 50%;
-  bottom: -6.57%;
-  width: 22.95%;
-  height: 95.24%;
+  bottom: -5.91%;
+  width: 21.81%;
+  height: 89.98%;
   pointer-events: none;
   transform: translateX(-50%);
   transform-origin: 50% 100%;
