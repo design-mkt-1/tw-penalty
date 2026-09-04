@@ -26,6 +26,27 @@ a { color: inherit; text-decoration: none; }
 
 [hidden] { display: none !important; }
 
+/* Available to a screen reader, absent from the page. Not `display: none` and
+   not `visibility: hidden`: both take the text out of the accessibility tree
+   too, which is the one thing it is here for. The 1px clipped box is the
+   long-standing form that survives every engine.
+
+   Used by the card's field labels, where the design puts the word inside the
+   box as a placeholder -- and a placeholder is not a name, and leaves with the
+   first keystroke. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

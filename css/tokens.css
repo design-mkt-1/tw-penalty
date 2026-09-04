@@ -145,11 +145,25 @@
   --bg-dark:       #1f1f1f;   /* BG DARK */
   --stroke:        #e7e6e9;   /* Stroke colour */
   --txt-main:      #2a2a2a;
-  --txt-secondary: #737b8c;
+  /* The design draws this at #737b8c, which is 4.25:1 on white and 4.19 on the
+     input grey -- under WCAG AA's 4.5 for text this size. Darkened until it
+     clears on both, measured from the rendered colours rather than from the
+     hex. It is used only on the card, so nothing on the navy stage moves. */
+  --txt-secondary: #5f6673;   /* design: #737b8c */
 
   /* Functional signals */
   --green: #00a75c;   /* success, and the T&C links in the card */
   --red:   #e41e1e;
+
+  /* ── Signals on a light background ────────────────────────────
+     The 500s are hero colours for large type and filled shapes. As small text
+     on white they are 3.4:1 (orange) and 3.1:1 (green), both under AA, so the
+     card's links take a darker step from the same ramp schedule -- 600 is 16%
+     black, 700 is 34% -- rather than a colour invented for the occasion.
+     Nothing else changes: the CTA keeps Orange Fire and darkens its ink. */
+  --green-700: #006e3d;
+  --accent-on-light: var(--orange-600);
+  --green-on-light:  var(--green-700);
 
   /* Delivered values that are not in the palette but are in the screens */
   --footer-bg: #00002e;   /* Footer 19:3717 */
@@ -162,7 +176,11 @@
      stopped tracking the brand and had to be chased down by hand later. */
   --accent:        var(--orange-500);
   --accent-press:  var(--orange-600);
-  --accent-ink:    var(--white);      /* the CTA sets white on orange */
+  /* Ink on the accent. The design sets white, which is 3.44:1 on Orange Fire --
+     under AA on the one control the whole page exists to get pressed. Dark ink
+     clears it comfortably and, unlike a darker button, leaves the hero colour
+     exactly as the brandbook specifies it. */
+  --accent-ink:    var(--bg-dark);    /* design: white on orange, 3.44:1 */
   --accent-soft:   var(--orange-300); /* tints of the accent, for gradients */
   --second:        var(--navy-500);
   --second-soft:   var(--navy-200);   /* legible on the navy glass plate */

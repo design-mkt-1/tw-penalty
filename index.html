@@ -94,7 +94,7 @@
       <!-- The scripts are deferred, so this text is what the first paint
            shows. It has to be the default language's, or the tagline flashes
            English on a Ukrainian page. -->
-      <p class="tagline__text" data-i18n="tagline">Заб’єш пенальті<br>та виграєш!</p>
+      <h1 class="tagline__text" data-i18n="tagline">Заб’єш пенальті<br>та виграєш!</h1>
     </div>
 
     <!-- ── pitch ──────────────────────────────────────────────── -->
@@ -183,33 +183,46 @@
 
         <div class="card__step" data-step="form">
           <div class="tabs" role="tablist" data-i18n-attr="aria-label:tabs.label">
-            <button class="tab is-active" type="button" role="tab" data-tab="email"
+            <button class="tab is-active" type="button" role="tab" id="tw-tab-email"
+                    data-tab="email" aria-controls="tw-panel-email"
                     aria-selected="true" data-i18n="tab.email">EMAIL</button>
-            <button class="tab" type="button" role="tab" data-tab="phone"
+            <button class="tab" type="button" role="tab" id="tw-tab-phone"
+                    data-tab="phone" aria-controls="tw-panel-phone"
                     aria-selected="false" data-i18n="tab.phone">PHONE</button>
           </div>
 
           <div class="fields">
-            <div class="field" data-for="email">
-              <div class="input">
+            <!-- The shell is the label, not a div around one. A placeholder is
+                 not an accessible name and it leaves with the first keystroke,
+                 and a div shell means only the 17px of the input itself is a
+                 tap target while 48px of it looks like one. As a label both
+                 are answered at once: the whole box names the field and
+                 focuses it. The text is for screen readers only -- the design
+                 puts the word inside the box, and that is the placeholder. -->
+            <div class="field" data-for="email" role="tabpanel"
+                 id="tw-panel-email" aria-labelledby="tw-tab-email">
+              <label class="input" for="tw-email">
+                <span class="sr-only" data-i18n="field.email">Email</span>
                 <input id="tw-email" type="email" inputmode="email" autocomplete="email"
                        data-i18n-attr="placeholder:field.email" aria-describedby="tw-email-err">
-              </div>
+              </label>
               <p class="err" id="tw-email-err" data-i18n="err.email" hidden>Invalid email address</p>
             </div>
 
-            <div class="field" data-for="phone" hidden>
+            <div class="field" data-for="phone" role="tabpanel"
+                 id="tw-panel-phone" aria-labelledby="tw-tab-phone" hidden>
               <!-- +380 is fixed text, not a country picker: the offer is
                    Ukraine-only and the design writes the prefix into the
                    field. The flag is the flag-icons SVG the language menu
                    already carries; the design draws the emoji, which renders
                    as the letters UA on Windows. -->
-              <div class="input input--phone">
+              <label class="input input--phone" for="tw-phone">
+                <span class="sr-only" data-i18n="field.phoneLabel">Phone number</span>
                 <img class="input__flag" src="assets/img/icons/flag-ua.svg" alt="" width="24" height="18">
                 <span class="input__prefix">+380</span>
                 <input id="tw-phone" type="tel" inputmode="tel" autocomplete="tel"
                        data-i18n-attr="placeholder:field.phone" aria-describedby="tw-phone-err">
-              </div>
+              </label>
               <p class="err" id="tw-phone-err" data-i18n="err.phone" hidden>Invalid phone number</p>
             </div>
 
@@ -237,8 +250,8 @@
             <input class="agree__box" id="tw-agree" type="checkbox" checked
                    aria-describedby="tw-agree-text"
                    data-i18n-attr="aria-label:agree.aria">
-            <p class="agree__text" id="tw-agree-text"><span
-              data-i18n="agree.pre">I am 18 years old and I accept the </span><a
+            <p class="agree__text" id="tw-agree-text"><label for="tw-agree"
+              data-i18n="agree.pre">I am 18 years old and I accept the </label><a
               data-i18n="agree.terms">Terms of Use</a><span
               data-i18n="agree.mid"> and the </span><a
               data-i18n="agree.privacy">Privacy Policy</a><span

@@ -160,7 +160,14 @@
   border-bottom: 1px solid var(--stroke);
 }
 
+/* The drawn tab is 28px tall -- 15px of type, the 8px gap and the 3px bar --
+   which is a small thing to hit with a thumb. The hit area is grown to 44
+   without moving anything: a transparent ::before reaching upward over the
+   promo block, which has nothing to click. Sideways it takes 8 of the 24px
+   gap on each side, so the two targets stay 8px apart. Same separation of
+   drawn shape from target the six panels use. */
 .card .tab {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -174,6 +181,12 @@
   font-weight: var(--fw-bold);
   text-transform: uppercase;
   transition: color 160ms ease;
+}
+
+.card .tab::before {
+  content: "";
+  position: absolute;
+  inset: -16px -8px 0;
 }
 
 /* The bar is always in the layout, so switching tabs cannot move the rule it
@@ -273,6 +286,7 @@
 /* The reveal toggle. A button, not an icon on a div: it is the one control in
    the field that is not the input, and it has to be reachable by Tab. */
 .card .eye {
+  position: relative;
   display: grid;
   place-items: center;
   width: 20px;
@@ -281,6 +295,14 @@
   border: 0;
   background: none;
   transition: opacity 160ms ease;
+}
+
+/* The icon stays 20px, the target becomes 44. It overhangs the field's right
+   padding, which holds nothing else. */
+.card .eye::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
 }
 
 .card .eye img { width: 20px; height: 20px; }
@@ -321,10 +343,17 @@
 
 .card .agree { display: flex; gap: 12px; align-items: flex-start; }
 
+/* 24, not the design's 20, and the tick scales with it. WCAG's target minimum
+   is 24x24 and this is the one control that could not reach it any other way:
+   pseudo-elements on an appearance:none input are not rendered by every engine,
+   so the ::before trick the tab and the reveal toggle use is not available
+   here. Four pixels on one checkbox is a smaller deviation than a hit area
+   that works in Chrome and not in Safari. The words beside it are a real
+   <label> as well, so the whole phrase toggles it. */
 .card .agree__box {
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   margin: 0;
   appearance: none;
   -webkit-appearance: none;
@@ -336,7 +365,7 @@
 
 .card .agree__box:checked {
   border-color: var(--green);
-  background: var(--green) url("../assets/img/icons/check.svg") center / 10px 10px no-repeat;
+  background: var(--green) url("../assets/img/icons/check.svg") center / 12px 12px no-repeat;
 }
 
 .card .agree__text {
@@ -348,11 +377,20 @@
   line-height: 18px;
 }
 
+/* The sentence up to the first link is a real <label> for the box. It is not
+   the whole sentence, because the two links inside it would toggle the
+   checkbox on their way to the anchor -- but it makes the words next to a
+   20px box part of its target, which is what a thumb needs. The box keeps its
+   aria-label for the full sentence. */
+.card .agree__text label { cursor: pointer; }
+
 /* [href] only, like the login link below: js/main.js supplies the two URLs,
    and until it does these are not links and must not advertise themselves as
-   ones. */
+   ones.
+   --green-on-light, not --green: the brandbook's 500 is 3.1:1 on white, under
+   AA for text this size. See the note in css/tokens.css. */
 .card .agree__text a[href] {
-  color: var(--green);
+  color: var(--green-on-light);
   font-weight: var(--fw-semi);
   text-decoration: underline;
 }
@@ -392,8 +430,9 @@
   font-weight: var(--fw-medium);
 }
 
+/* --accent-on-light, not --accent: Orange Fire is 3.4:1 on white. */
 .card .foot a {
-  color: var(--accent);
+  color: var(--accent-on-light);
   font-weight: var(--fw-bold);
 }
 

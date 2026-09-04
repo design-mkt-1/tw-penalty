@@ -61,6 +61,7 @@
          shows the shape of the number behind the fixed +380. */
       'field.email':    'Email',
       'field.phone':    '00 000 0000',
+      'field.phoneLabel': 'Phone number',
       'field.password': 'Password',
       'field.passwordHint': 'Enter password',
       'field.reveal':   'Show password',
@@ -117,6 +118,7 @@
       'tab.email':      'EMAIL',
       'field.email':    'Email',
       'field.phone':    '00 000 0000',
+      'field.phoneLabel': 'Номер телефону',
       'field.password': 'Пароль',
       'field.passwordHint': 'Введіть пароль',
       'field.reveal':   'Показати пароль',
@@ -172,6 +174,7 @@
       'tab.email':      'EMAIL',
       'field.email':    'Email',
       'field.phone':    '00 000 0000',
+      'field.phoneLabel': 'Номер телефона',
       'field.password': 'Пароль',
       'field.passwordHint': 'Введите пароль',
       'field.reveal':   'Показать пароль',
