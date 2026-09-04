@@ -26,6 +26,28 @@
    rather than being restated here where it would drift. */
 
 .ftr {
+  /* The bottom half of the bracket the play area sits in. .hdr is the top
+     half and already carries this exact rule and this exact reasoning: at 46
+     it is above the effects canvas at 45 and below the registration card at
+     50, so confetti passes behind the bar instead of over it.
+
+     The footer needs it for the same reason and had been left without it. The
+     canvas is inset:0 on #stage, so it covers this band too, and burst() fires
+     110 bits from the goal with gravity over 1700ms -- they reach the band and
+     were painting across it. Everything the game draws lives below 46; the
+     card at 50 deliberately still covers both bars.
+
+     It also settles the stadium plate, which overflows .pitch on every side by
+     design and runs 192px under this band. Whether it painted over or under
+     depended on whether .pitch happened to form a stacking context -- a fact
+     that held by accident and would have flipped the day this background
+     stopped being opaque. A positioned bar at 46 beats a positioned element at
+     auto either way, so the plate is now covered by rule rather than by luck.
+     It still renders under the band; it is not clipped there, and clipping it
+     would mean moving the canvas's coordinate origin off #stage. */
+  position: relative;
+  z-index: 46;
+
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
