@@ -6,10 +6,32 @@ and this repo does not repeat that. What is kept instead is the recipe: the
 model, the prompts, the job ids and the framing every render had to hit. The
 art is reproducible from this file.
 
-Everything here was generated through Higgsfield on **Nano Banana 2** — catalog
-id `nano_banana_2`, which comes back on the job as the internal type
-`nano_banana_flash` under the display name `Nano Banana 2`. Same model, two
-names; do not read the second one as a downgrade. All renders are 4k.
+Everything here was generated on **Google Nano Banana 2**, at 4k, through two
+different services. The model is the constant; the service is not.
+
+**Nano Banana 2, not Nano Banana Pro.** Both exist in both catalogues and they
+are different models. Use:
+
+| service | id for Nano Banana 2 | id for Pro — do not use |
+|---|---|---|
+| Higgsfield | `nano_banana_2` | `nano_banana_pro` |
+| Magnific | `imagen-nano-banana-2-flash` | `imagen-nano-banana-2` |
+
+Higgsfield reports the job's internal type as `nano_banana_flash` under the
+display name `Nano Banana 2`; that is the same model, not a downgrade. Magnific
+names the tiers the other way round, so the `-flash` suffix is Nano Banana 2 and
+the bare id is Pro. Getting this wrong does not fail loudly -- it returns a
+perfectly good render on a different treatment from the nine sprites beside it.
+
+**The canvas is identical across both services**, which is what makes the split
+safe: 4k at 2:3 returns 3392x5056 from each, ratio .6709, so every pose shares
+one coordinate space regardless of where it was rendered. Verified by measuring,
+not assumed -- 2:3 at 4k is not exactly 2:3, and a service that rounded it
+differently would have needed the poses padded before keying.
+
+Why two services: the Higgsfield account hit a daily generation cap partway
+through the keeper set. The remaining three poses were rendered on Magnific
+against the same reference image.
 
 `tools/cutout.py` turns the renders into sprites and `tools/ball_sheet.py`
 paints the ball outright. Neither needs the network.
@@ -149,6 +171,15 @@ the achromatic backdrop in from the frame edge and keeps every saturated or
 bright pixel, so the orange kit, the navy trim and the white boots all survive
 while grey inside the figure does not get eaten.
 
+Flooding from the edge has one blind spot, and a pose finds it: a hand on a hip
+closes a triangle between the arm and the body, and that backdrop has no path
+to the frame edge, so it stays opaque and the sprite carries a grey hole. It
+cost 6.7% of `beaten` and 3.1% of `ready` before `cutout.enclosed_pockets`
+existed. The reference project never saw it because the poses with an arm
+akimbo arrived pre-keyed and took the `rgba` path instead. Check it on any pose
+where a limb closes a loop: on the grey backdrop the hole is invisible, and on
+the navy pitch it is a grey blob.
+
 ### idle
 
 Job `30855b43-f151-47b5-bf35-946bc1e5be68`. Generated as one of two variants on
@@ -238,37 +269,45 @@ strong: the render obeys it and hides the face entirely, which reads more like
 a man looking at his boots than a beaten keeper. If this pose is regenerated,
 ask for the head dropped and the eyes down while the face stays visible.
 
-### Outstanding
+### The last three, and the two words that cost a render each
 
-Three poses are not settled, and none of them is a keying or a framing problem.
+`jump_R2`, `ready` and `jump_center_down` were rendered on Magnific after the
+Higgsfield cap, from creations `79278hLJAL`, `xSPxMOhjfW` and `XmuX7jxBfo`,
+each generated as one of two variants on one prompt. Their POSE and FRAMING
+paragraphs are in this repo's history; what is worth keeping is why the first
+attempts failed, because both failures were things the prompt did not say
+rather than things it said badly.
 
-- **`ready`** and **`jump_R2`** were never generated: both submissions were
-  refused with a daily generation limit on the account. `jump_R2` is worth two
-  sprites, since `jump_L2` is its mirror.
-- **`jump_center_down`** was generated — job
-  `18aa9b00-e6b9-478d-b7f4-04d76ea19316` — and rejected. The prompt below asked
-  for a two-knee smother in the lower half of the frame; the render came back
-  as an upright one-knee kneel filling .770 of the canvas height against the
-  .495 the composition wants, with the gloves apart rather than together. The
-  pose is wrong, not mis-framed, so the fix is a regeneration and not a crop.
+**Say that there is no ball.** The first `jump_R2` came back with a football
+held in the keeper's gloves. Nothing in the prompt asked for one and nothing
+forbade one either -- it excluded text, logos and watermarks, and a diving
+goalkeeper holding a ball is what the model reasonably assumed. A ball baked
+into a sprite is a second ball on screen, because `js/fx.js` draws the real one
+on the canvas. Every pose prompt now carries:
 
-  > POSE: a LOW save straight down the MIDDLE. He has dropped onto both knees,
-  > facing the camera, chest upright and shoulders square, and has brought both
-  > gloved hands down together in front of his shins to smother a low ball,
-  > palms forward and almost touching the ground. Head up, eyes forward,
-  > elbows close to his body.
-  >
-  > FRAMING — this is critical: the ENTIRE kneeling figure is inside the frame,
-  > nothing cropped. He is centred horizontally and sits in the LOWER HALF of
-  > the frame: his knees and boots a little above the bottom edge, and a large
-  > area of empty grey background above his head. Do not fill the frame with
-  > him — he occupies roughly the bottom half of it.
+> NOTHING IS IN HIS HANDS. There is no football anywhere in the frame. His
+> gloves are open and empty and close on nothing but air. Do not add a ball.
 
-  Worth saying plainly in the retry that he is **sitting back on both heels,
-  low and compact**, and that the frame is mostly empty above him.
+This is almost certainly what broke the first `jump_center_down` too, whose
+prompt said the hands were there "to smother a low ball" -- the phrase names
+the object while the composition cannot have it.
 
-`ready` and `jump_R2` still need their prompts written; the pose descriptions
-that were submitted are in the session that generated the rest.
+**"No floor, no cast shadow" is not always obeyed.** The kneeling pose is the
+one that tempts the model into grounding the figure, and both variants came
+back standing on a floor plane with a soft contact shadow, despite the
+BACKGROUND block forbidding both. It is keyable -- the shadow is achromatic and
+the flood reaches it from the frame edge -- but it is the pose to check first
+on any regeneration.
+
+**Ask for the shape, not the adjective.** The first `jump_R2` was "a full-stretch
+HIGH flying save" and came back nearly horizontal, .498 of the canvas tall
+against the .830 the composition wants. Naming the geometry instead -- a steep
+diagonal at roughly 45 degrees, gloves towards the top-right CORNER, boots
+towards the bottom-left, spanning most of the frame's height as well as its
+width -- got .760 on the next attempt.
+
+**Two variants per pose, not one.** At three variants the pose is usually right
+in one of them, and picking is free next to regenerating.
 
 ## The framing the sprites have to hit
 

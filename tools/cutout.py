@@ -1,4 +1,13 @@
-"""Turn the raw Nano Banana Pro renders into game-ready sprites.
+"""Turn the raw Nano Banana 2 renders into game-ready sprites.
+
+Nano Banana 2, not Nano Banana Pro. Both exist and this file used to name the
+wrong one, inherited from the reference project. Every render in raw/ -- the
+plate and all six keeper poses -- came from the model whose catalog id is
+`nano_banana_2` on Higgsfield and `imagen-nano-banana-2-flash` on Magnific;
+`nano_banana_pro` / `imagen-nano-banana-2` is a different, slower model. Regenerating
+a single pose on Pro would put it on a different render treatment from the nine
+beside it, which is exactly the failure the shared canvas exists to prevent.
+
 
 Each raw render sits on a flat background: mid-grey for the goalkeeper poses
 and the ball, magenta for the goal. This script keys that background out,
@@ -104,7 +113,53 @@ def grey_background(rgb):
     ImageDraw.floodfill(img, (0, 0), 128, thresh=0)
     filled = np.asarray(img)
 
-    return filled[1:-1, 1:-1] == 128
+    bg = filled[1:-1, 1:-1] == 128
+    return bg | enclosed_pockets(candidate, bg, luma, luma[ring].mean())
+
+
+def enclosed_pockets(candidate, edge_bg, luma, ring_luma):
+    """Backdrop the edge flood cannot reach, because the subject encloses it.
+
+    A hand on a hip closes a triangle between the arm and the body, and that
+    triangle is backdrop with no path to the frame edge. The flood leaves it
+    opaque, so the sprite carries a mid-grey hole through the figure -- 6.7% of
+    `beaten` and 3.1% of `ready` before this existed, and grey rather than
+    transparent is what it looks like on the navy pitch.
+
+    The reference project never hit this: its poses with a hand on a hip came
+    into raw/ already keyed and took the `rgba` path, so nothing here ever ran
+    on them. Every Top Win pose goes through the flood, so all of them do.
+
+    Judged per connected region and on tone, not on size or position, because
+    the thing that must survive is the reason the flood exists at all:
+    achromatic parts INSIDE the subject. Black undershorts and the shadowed
+    side of a white boot are both far from the backdrop's own brightness, so
+    their regions fail this test and stay; a pocket of the actual backdrop
+    matches it within a few levels and goes. Comparing a whole region's mean
+    rather than single pixels is what keeps a dark fold inside a grey region
+    from dragging the region out with it.
+    """
+    todo = candidate & ~edge_bg
+    out = np.zeros_like(todo)
+    if not todo.any():
+        return out
+
+    arr = (todo * 255).astype(np.uint8)
+    tag = 200
+    while tag > 1:
+        remaining = np.argwhere(arr == 255)
+        if remaining.size == 0:
+            break
+        y, x = remaining[0]
+        img = Image.fromarray(arr, 'L').copy()
+        ImageDraw.floodfill(img, (int(x), int(y)), tag, thresh=0)
+        arr = np.asarray(img).copy()
+        region = arr == tag
+        if abs(float(luma[region].mean()) - float(ring_luma)) <= 12:
+            out |= region
+        tag -= 1
+
+    return out
 
 
 def shrink(mask, size):
