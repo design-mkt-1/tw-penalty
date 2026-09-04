@@ -230,38 +230,45 @@
 
   /* One goal width, still the unit the whole composition is measured in --
      but measured off the photograph rather than off a sprite. In
-     pitch-spot.webp (1800x1201) the posts stand at x 674.3 and 1125.7, the
-     crossbar's top edge at y 476.8 and the goal line at y 639.0. So the goal
-     is 451.4 image pixels wide by 162.2 tall, and every number below is that
-     measurement divided by 451.4. */
+     pitch-spot.webp (1800x1208) the posts stand at x 681 and 1118, the
+     crossbar's top edge at y 523 and the goal line at y 681. So the goal is
+     437 image pixels wide by 158 tall, and every number below is that
+     measurement divided by 437.
+
+     Re-measured for the Top Win plate; the fs-penalty photograph gave 451.4 by
+     162.2 on a 1800x1201 frame. The numbers are close because the framing was
+     aimed at the same target -- a goal spanning a quarter of a 3:2 frame,
+     which is what makes the height come out near 2.66 goal widths on its own --
+     but they are not the same numbers and none of them was carried over. */
   --gw: min(92cqw, 135cqh, 560px);
-  --goal-h: calc(var(--gw) * 248 / 690);
+  --goal-h: calc(var(--gw) * 158 / 437);
   --goal-base: calc(46.5% + var(--goal-h) / 2);
 }
 
 /* The stadium plate. Sized and placed so the painted goal lands exactly on
-   .goal at every screen size: one goal width is 451.4 image pixels, so the
-   1800px-wide image is 3.9876 goal widths across and 2.6606 tall, and the
-   painted crossbar sits 1.0563 goal widths below its top edge.
+   .goal at every screen size: one goal width is 437 image pixels, so the
+   1800px-wide image is 4.1190 goal widths across and 2.7643 tall, and the
+   painted crossbar sits 1.1968 goal widths below its top edge.
 
    It hangs off .pitch rather than off #stage because .goal is placed in the
    pitch's coordinates -- the two have to be measured in the same box or they
    drift apart as the rows above and below flex. It overflows the pitch on
    every side, which is why .pitch no longer clips; #stage still does.
 
-   The image was extended 300px at the bottom before export, stretched out of
-   its own last rows and faded off, so the foreground grass still reaches the
-   ball on a tall phone. The worst case measured is 2.49 goal widths of
-   height, at 430x932; there are 2.66. */
+   The fs-penalty plate had to be extended 300px at the bottom before export,
+   stretched out of its own last rows and faded off, so the foreground grass
+   still reached the ball on a tall phone. This one does not: it was framed
+   wide enough to begin with and carries 2.76 goal widths of height against the
+   2.49 the worst case needs, at 430x932. */
 .pitch::before {
   content: "";
   position: absolute;
   z-index: -1;
   left: 50%;
-  top: calc(46.5% - var(--goal-h) / 2 - var(--gw) * 1.0563);
-  width: calc(var(--gw) * 3.9876);
-  height: calc(var(--gw) * 2.6606);
-  margin-left: calc(var(--gw) * -1.9938);
+  top: calc(46.5% - var(--goal-h) / 2 - var(--gw) * 1.1968);
+  width: calc(var(--gw) * 4.1190);
+  height: calc(var(--gw) * 2.7643);
+  margin-left: calc(var(--gw) * -2.0595);
   /* The vignette rides on the plate rather than on a layer of its own. It used
      to be a separate element the size of .pitch, and in landscape the pitch is
      only the left column -- so the vignette stopped dead at x 540 of an 844px

@@ -10,11 +10,11 @@ __pycache__/
 raw/
 
 # Placeholder art carried over from fs-penalty so the ported page runs while
-# the Top Win art is being made. Neither belongs in this repo's history: the
-# keeper wears FanSport's kit and the plate is graded to their green/purple.
-# Both are generative work, so they wait for Etapa 3, which replaces them and
-# deletes this block. The ball used to be listed here too -- it was painted
-# with FanSport's brand colours despite the plan calling it brand-neutral --
-# but it came from a recipe in this repo, so it was simply repainted.
+# the Top Win art is being made. It wears FanSport's kit and does not belong in
+# this repo's history. Etapa 3 replaces it and deletes this block -- when a
+# `git status` here is clean of this line, the artwork is done.
+#
+# The other two placeholders are already gone. The ball came from a recipe in
+# this repo and was simply repainted; the stadium plate has been regenerated
+# and is tracked.
 assets/img/keeper-*.webp
-assets/img/pitch-spot.webp
