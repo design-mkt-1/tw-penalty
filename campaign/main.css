@@ -1,204 +1,111 @@
-/* ══ header ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   TW-PENALTY — the mechanic's stylesheet
 
-.hdr {
-  position: relative;
-  /* Above .fx (45), below .sheet (50). This element is a stacking context, so
-     .lang-menu's own z-index: 60 is capped at whatever the header sits at —
-     at 40 the open menu painted underneath the effects canvas. Confetti now
-     passes behind the header bar instead, which costs nothing: it bursts from
-     the goal and falls, and never reaches the top 59px. */
-  z-index: 46;
-  flex: 0 0 clamp(52px, 7cqh, 74px);
+   The scripted penalty, ported onto tw-lp-template. Everything the header,
+   the footer and the registration card used to draw is gone from here:
+   css/shell.css and css/form.css own all three now, and this file is the
+   pitch, the goal, the six plates, the keeper, the ball and the caption.
+
+   Layout mode B, the fixed stage: index.html carries the css/stage.css
+   <link>, so <body> is a flex column, the two bars keep their height and
+   #tw-main takes the rest. Every cqh/cqw below is therefore "of the space the
+   mechanic got".
+
+   ── Colour ───────────────────────────────────────────────────
+   Every brand colour is asked for by its semantic token: --accent,
+   --accent-soft, --second-soft, --text, --glass-*, --glow-*. The block below
+   is the exception, and it is not a second palette: it is the mechanic's own
+   light and shade -- a dust plume, the flash where the ball strikes, the
+   keeper's drop shadow, the vignette on the photograph. None of it is a
+   brand colour, none of it appears anywhere but this page, and css/tokens.css
+   is a shared file this campaign is not allowed to edit.
+
+   The rule that still holds: they are written ONCE, here, and every rule
+   below asks for the variable. `python tools/tokens.py --check` does not
+   read this file -- it scans css/*.css only -- so this block is discipline,
+   not enforcement. Do not scatter a literal back into a rule.
+   ═══════════════════════════════════════════════════════════════ */
+
+#tw-main {
+  /* the plume under the keeper's landing: floodlit grass dust */
+  --cmp-dust:            rgba(222, 236, 255, .42);
+
+  /* the strike: a white flash and the ring out of it */
+  --cmp-flash:           rgba(255, 255, 255, .95);
+  --cmp-flash-mid:       rgba(255, 255, 255, .60);
+  --cmp-flash-out:       rgba(255, 255, 255, 0);
+  --cmp-flash-glow:      drop-shadow(0 0 14px rgba(255, 255, 255, .5));
+
+  /* the glass plates' inner shadow, and the halo that carries a multiplier
+     over a floodlit net */
+  --cmp-plate-inset:     0 2px 10px rgba(0, 0, 0, .28) inset;
+  --cmp-label-ink:       0 2px 6px rgba(0, 0, 0, .75),
+                         0 0 14px rgba(0, 0, 0, .85),
+                         0 0 3px rgba(0, 0, 0, .9);
+
+  /* the keeper: his ground shadow, and the drop shadow welded to the sprite */
+  --cmp-shade:           rgba(0, 0, 0, .66);
+  --cmp-shade-soft:      rgba(0, 0, 0, .30);
+  --cmp-figure-drop:     drop-shadow(0 6px 12px rgba(0, 0, 0, .55));
+
+  /* the ball: its own drop shadow, the orange glow on it, and the shadow it
+     casts on the spot. The glow is a filter, so --glow-accent -- a box-shadow
+     -- cannot be used for it. */
+  --cmp-ball-drop:       drop-shadow(0 10px 14px rgba(0, 0, 0, .55));
+  --cmp-ball-glow:       drop-shadow(0 0 16px rgba(255, 69, 0, .35));
+  --cmp-ball-glow-hover: drop-shadow(0 0 26px rgba(255, 69, 0, .75));
+  --cmp-spot-shade:      rgba(0, 0, 0, .55);
+
+  /* the photograph's vignette, the scrim under the headline, and the glow
+     the headline throws onto the night sky */
+  --cmp-vignette:        rgba(3, 8, 6, .72);
+  --cmp-sky-scrim:       linear-gradient(180deg,
+                           rgba(4, 4, 6, .86), rgba(4, 4, 6, .55) 62%, transparent);
+  --cmp-tagline-glow:    drop-shadow(0 2px 10px rgba(255, 69, 0, .30));
+}
+
+
+/* ══ the three rows ═══════════════════════════════════════════
+   Portrait: the headline, the pitch, the ball. css/stage.css has already
+   made #tw-main the middle row of the page and a size container; this only
+   arranges what is inside it.
+
+   #tw-main also carries data-state, which campaign/main.js writes: idle,
+   shooting, celebrate, form. The panels and the ball stop taking pointers
+   in the last three -- see the rule under the panels. */
+#tw-main {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0 clamp(12px, 3.6cqw, 30px);
-  background: rgba(11,11,13,.72);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255,255,255,.06);
+  flex-direction: column;
+  isolation: isolate;
 }
 
-.hdr__logo img { height: clamp(24px, 3.4cqh, 34px); width: auto; }
+/* Short and wide -- a phone in landscape. The stacked column does not fit, so
+   the goal takes the left and the words and the ball stack on the right. The
+   query is css/stage.css's, written the same way and asked of the same
+   container, so the footer disappears in exactly the same breath. */
+@container tw-stage (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
+  #tw-main {
+    display: grid;
+    grid-template-columns: 1fr minmax(150px, 36%);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "pitch   tagline"
+      "pitch   ball";
+  }
 
-.hdr__right { display: flex; align-items: center; gap: 8px; }
+  .cmp-pitch     { grid-area: pitch; }
+  .cmp-tagline   { grid-area: tagline; align-self: end; }
+  .cmp-ball-zone { grid-area: ball; }
 
-/* The header controls, from Figma 1:3797 "Header Mobile". They were 32px
-   pills with a 13px label; the design has them at 44 with a 16px one, which
-   is also the tap target size iOS asks for and the old ones missed by 12px. */
-.mute,
-.lang {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 22px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: #3a3a3c;
-  color: var(--text);
-  /* Roboto, not the display face. The design sets this in Inter Medium and
-     SemiBold; the Montserrat cut this project self-hosts starts at 700, so
-     every weight below that rendered as 700 and the header read as shouting.
-     Roboto is already hosted at 400-900 for the registration card. */
-  font-family: "Roboto", system-ui, -apple-system, sans-serif;
-  font-weight: 600;
-  font-size: 16px;
-  transition: scale 140ms var(--ease-out);
+  /* The side column is a third of the width; the portrait padding would eat
+     most of it. The #tw-main prefix is load-bearing: a container query does
+     not raise specificity, and .cmp-tagline's padding is declared later in
+     this same file. tw-penalty shipped exactly this bug for a whole port. */
+  #tw-main .cmp-tagline {
+    padding: clamp(8px, 2cqh, 18px) clamp(10px, 1.6cqw, 22px);
+  }
 }
 
-.mute { width: 44px; padding: 0; justify-content: center; }
-
-.mute svg,
-.lang svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.mute .mute__spk { fill: currentColor; stroke: none; }
-.mute .mute__off { display: none; }
-.mute[aria-pressed="true"] .mute__on { display: none; }
-.mute[aria-pressed="true"] .mute__off { display: block; }
-
-/* The green outline is the design's treatment for this trigger, and the label
-   is white against it rather than green -- the outline already says which
-   control it is, and a green label on a green outline says it twice. */
-.lang { border-color: var(--accent); color: #fff; }
-.lang__caret { width: 14px; height: 14px; }
-
-/* Press feedback. They are buttons; they were behaving like labels. The logo
-   is qualified on [href] because it only becomes one when HOME_URL is filled
-   in js/main.js -- a mark that shrinks under the thumb and then does nothing
-   reads as a broken control rather than a logo. */
-.mute:active,
-.lang:active,
-.hdr__logo[href]:active { scale: .95; }
-
-/* == language menu ============================================ */
-
-.lang-wrap { position: relative; }
-
-.lang__caret { transition: transform 180ms var(--ease-out); }
-.lang[aria-expanded="true"] .lang__caret { transform: rotate(180deg); }
-
-/* Grows out of the button it hangs from, so it reads as coming from there
-   rather than appearing over the header. reset.css forces [hidden] to
-   display:none !important, so display cannot be transitioned -- the open
-   state is a class, and js/i18n.js unhides one frame ahead of it. Same
-   two-step the registration card uses.
-
-   The sizes are the design's: 286 wide, 14 radius, a hairline #38383a border
-   and a drop shadow, rather than the 136px frosted panel this used to be.
-   Rows run flush to the edges and are divided by hairlines, so there is no
-   padding here and no radius on a row. */
-.lang-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 60;
-  width: 286px;
-  max-width: calc(100cqw - 24px);
-  padding: 0;
-  overflow: hidden;
-  list-style: none;
-  border-radius: 14px;
-  border: .5px solid #38383a;
-  background: #2c2c2e;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
-  transform-origin: top right;
-  opacity: 0;
-  transform: translateY(-6px) scale(.96);
-  pointer-events: none;
-  transition: opacity 120ms var(--ease-out), transform 120ms var(--ease-out);
-}
-
-/* Entry is slower than exit: arriving is worth watching, leaving is not. */
-.lang-menu.is-open {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-  transition-duration: 180ms;
-}
-
-.lang-opt {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 48px;
-  padding: 0 16px;
-  color: var(--text);
-  font-family: "Roboto", system-ui, -apple-system, sans-serif;
-  font-size: 16px;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 120ms ease;
-}
-
-.lang-opt + .lang-opt { border-top: .5px solid #38383a; }
-
-/* Flags carry the meaning at a glance; the code and the endonym beside them
-   settle the ambiguity a flag alone would leave -- English is not a country.
-   The design uses flag emoji, which draw differently on every platform; these
-   are the MIT SVGs in assets/img/icons/. GB is the convention for EN. */
-.lang-opt__flag {
-  flex: 0 0 auto;
-  width: 24px;
-  height: 18px;
-  border-radius: 2px;
-  object-fit: cover;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .22);
-}
-
-/* #9a9aa0 rather than the design's #8e8e93, which is 4.3:1 on this
-   background. The same substitution the registration card documents. */
-.lang-opt__code {
-  flex: 0 0 32px;
-  color: #9a9aa0;
-  font-size: 15px;
-}
-
-.lang-opt__name { flex: 1 1 auto; color: #fff; }
-
-/* A drawn tick rather than U+2713: that codepoint is outside the latin subset
-   of the Montserrat cut, so the glyph would arrive from a fallback. */
-.lang-opt__check {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0;
-}
-
-.lang-opt[aria-selected="true"] { background: #3a3a3c; }
-.lang-opt[aria-selected="true"] .lang-opt__check { opacity: 1; }
-
-/* Arrow keys move focus through the list, so the focused option needs to be
-   visible even when the menu was opened by tapping. */
-.lang-opt:focus { background: rgba(255, 255, 255, .09); outline: none; }
-.lang-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-
-@media (hover: hover) and (pointer: fine) {
-  .lang-opt:hover { background: rgba(255, 255, 255, .09); }
-}
-
-/* Same ring as .panel and .ball further down; the header buttons had none. */
-.hdr__logo:focus-visible,
-.mute:focus-visible,
-.lang:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 
 /* == pitch ==================================================== */
 
@@ -215,11 +122,11 @@
    six-yard box and the arc are in the photograph, in one consistent
    perspective, because one camera made all of them. Nothing is drawn on top
    of them any more. */
-.pitch {
+.cmp-pitch {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  /* cqw and cqh on .goal below mean "of the pitch" because of this. */
+  /* cqw and cqh on .cmp-goal below mean "of the pitch" because of this. */
   container: pitch / size;
 
   /* The whole scene shakes together now -- plate, goal and keeper -- because
@@ -244,7 +151,7 @@
      plate is --gw * 1800/437, so it capped the BACKDROP at 2307px too and left
      a black band down each side of anything wider -- 265px each at 2835. The
      two cannot be separated: the plate is sized in goal widths precisely so
-     the painted posts land on .goal, and scaling it alone would unregister it.
+     the painted posts land on .cmp-goal, and scaling it alone would unregister it.
 
      So the floor is raised instead of the cap removed: 437/1800 is the gw at
      which the plate is exactly as wide as the pitch, and 1790 buys about half
@@ -258,9 +165,9 @@
   --goal-h: calc(var(--gw) * 158 / 437);
 
   /* Where the goal's centre sits in the pitch. One variable because three
-     rules need the same answer -- this one, .goal's top and the plate's top --
+     rules need the same answer -- this one, .cmp-goal's top and the plate's top --
      and the plate's is what registers the photograph against the goal. Change
-     it in two of the three and the painted posts walk off .goal, which is a
+     it in two of the three and the painted posts walk off .cmp-goal, which is a
      fault this file has already had twice.
 
      It is not one number, because the two ends see different pictures. The
@@ -280,26 +187,26 @@
    picture rather than a gap. Below this the plate is a crop and the goal
    rides high -- see --goal-mid above. A step rather than a ramp: the two are
    different compositions, not one being stretched. */
-@container viewport (min-width: 900px) {
-  .pitch { --goal-mid: 46.5%; }
+@container tw-stage (min-width: 900px) {
+  .cmp-pitch { --goal-mid: 46.5%; }
 }
 
 /* The stadium plate. Sized and placed so the painted goal lands exactly on
-   .goal at every screen size: one goal width is 437 image pixels, so the
+   .cmp-goal at every screen size: one goal width is 437 image pixels, so the
    1800px-wide image is 4.1190 goal widths across and 2.7643 tall, and the
    painted crossbar sits 1.1968 goal widths below its top edge.
 
-   It hangs off .pitch rather than off #stage because .goal is placed in the
+   It hangs off .cmp-pitch rather than off #stage because .cmp-goal is placed in the
    pitch's coordinates -- the two have to be measured in the same box or they
    drift apart as the rows above and below flex. It overflows the pitch on
-   every side, which is why .pitch no longer clips; #stage still does.
+   every side, which is why .cmp-pitch no longer clips; #stage still does.
 
    The fs-penalty plate had to be extended 300px at the bottom before export,
    stretched out of its own last rows and faded off, so the foreground grass
    still reached the ball on a tall phone. This one does not: it was framed
    wide enough to begin with and carries 2.76 goal widths of height against the
    2.49 the worst case needs, at 430x932. */
-.pitch::before {
+.cmp-pitch::before {
   content: "";
   position: absolute;
   z-index: -1;
@@ -312,7 +219,7 @@
      -899.5, not -900, and that half pixel is the photograph rather than a
      rounding: the posts stand at 681 and 1118, so the painted goal's centre is
      at 899.5 of the 1800, half a pixel left of the image's own centre. Hanging
-     the plate off the image centre put .goal 0.64px right of the painted goal
+     the plate off the image centre put .cmp-goal 0.64px right of the painted goal
      at a 560px goal -- measured against the posts at six viewport sizes, the
      same offset scaled at every one of them. What has to register here is the
      goal, not the frame around it, so the plate is positioned by the goal. */
@@ -321,14 +228,14 @@
   height: calc(var(--gw) * 1208 / 437);
   margin-left: calc(var(--gw) * -899.5 / 437);
   /* The vignette rides on the plate rather than on a layer of its own. It used
-     to be a separate element the size of .pitch, and in landscape the pitch is
+     to be a separate element the size of .cmp-pitch, and in landscape the pitch is
      only the left column -- so the vignette stopped dead at x 540 of an 844px
      stage and drew a visible vertical edge across the grass. On the plate it
      has nowhere to end that anyone can see. */
   background:
     radial-gradient(74% 64% at 50% 46%,
-      transparent 32%, rgba(3, 8, 6, .72) 100%),
-    url("../assets/img/pitch-spot.webp") center / 100% 100% no-repeat;
+      transparent 32%, var(--cmp-vignette) 100%),
+    url("assets/pitch-spot.webp") center / 100% 100% no-repeat;
   pointer-events: none;
 }
 
@@ -351,7 +258,7 @@
    1.2px at a 560px goal, measured against the painted posts. The panels and
    the keeper hang off this box, so they were all short by that much. Keep the
    two in step, or better, do not restate the measurement here at all. */
-.goal {
+.cmp-goal {
   position: absolute;
   left: 50%;
   top: var(--goal-mid);
@@ -370,7 +277,7 @@
    where the keeper's feet arrive. It hangs off the goal rather than off the
    keeper, so the squash in the dive tween does not stretch it too --
    js/animator.js hands over the landing offset. */
-.dust {
+.cmp-dust {
   position: absolute;
   z-index: 1;
   left: 50%;
@@ -380,12 +287,12 @@
   margin-left: -9.75%;
   translate: var(--dust-x, 0) 0;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(222, 236, 255, .42), transparent 70%);
+  background: radial-gradient(closest-side, var(--cmp-dust), transparent 70%);
   opacity: 0;
   pointer-events: none;
 }
 
-.dust.is-live { animation: dust 700ms var(--ease-out) forwards; }
+.cmp-dust.is-live { animation: dust 700ms var(--ease-out) forwards; }
 
 @keyframes dust {
   0%   { opacity: 0;  transform: scale(.3); }
@@ -403,9 +310,9 @@
    not be seen at all; measured by pausing the animation there and looking.
    A gradient ring keeps its share of the circle at every scale.
 
-   It stays in front of the keeper: .hit is z-index 4 against his 3, so the
+   It stays in front of the keeper: .cmp-hit is z-index 4 against his 3, so the
    two centre panels need nothing of their own. */
-.hit {
+.cmp-hit {
   position: absolute;
   z-index: 4;
   left: var(--hit-x, 50%);
@@ -416,27 +323,27 @@
   border-radius: 50%;
   background: radial-gradient(closest-side,
               transparent 56%,
-              rgba(255, 255, 255, .95) 72%,
-              rgba(255, 255, 255, 0) 90%);
-  filter: drop-shadow(0 0 14px rgba(255, 255, 255, .5));
+              var(--cmp-flash) 72%,
+              var(--cmp-flash-out) 90%);
+  filter: var(--cmp-flash-glow);
   opacity: 0;
   pointer-events: none;
 }
 
 /* The strike itself. Bright, small and gone in a fifth of a second -- it is
    the impact, not the aftermath, and the ring behind it carries the rest. */
-.hit::after {
+.cmp-hit::after {
   content: "";
   position: absolute;
   inset: 28%;
   border-radius: 50%;
   background: radial-gradient(closest-side,
-              #fff, rgba(255, 255, 255, .6) 55%, transparent);
+              var(--cmp-flash), var(--cmp-flash-mid) 55%, transparent);
   opacity: 0;
 }
 
-.hit.is-live { animation: hit 520ms var(--ease-out) forwards; }
-.hit.is-live::after { animation: hit-flash 200ms var(--ease-out) forwards; }
+.cmp-hit.is-live { animation: hit 520ms var(--ease-out) forwards; }
+.cmp-hit.is-live::after { animation: hit-flash 200ms var(--ease-out) forwards; }
 
 @keyframes hit {
   0%   { opacity: 0; transform: scale(.25); }
@@ -452,8 +359,8 @@
 /* reset.css cuts every animation to 0.01ms under reduced motion, which would
    leave these as a one-frame flash. Better to have them not happen. */
 @media (prefers-reduced-motion: reduce) {
-  .dust,
-  .hit { display: none; }
+  .cmp-dust,
+  .cmp-hit { display: none; }
 }
 
 /* ══ multiplier panels — brandbook "glass plate" ══════════════ */
@@ -463,11 +370,11 @@
    248 tall, so 3.2%; and the net meets the grass on the goal line itself,
    which is the box's own bottom edge.
 
-   No z-index here on purpose. .panels and .panel are both left free of a
+   No z-index here on purpose. .cmp-panels and .cmp-panel are both left free of a
    stacking context so their two halves -- the glass plate and the multiplier
    label -- can be ordered independently against the keeper, who renders at 3.
-   See .panel::before below. */
-.panels {
+   See .cmp-panel::before below. */
+.cmp-panels {
   position: absolute;
   inset: 3.2% 1.6% 0;
   display: grid;
@@ -477,7 +384,7 @@
   padding: clamp(4px, 1.7cqw, 10px);
 }
 
-.panel {
+.cmp-panel {
   position: relative;
   display: grid;
   place-items: center;
@@ -490,11 +397,11 @@
    load-bearing rather than tidy. backdrop-filter makes an element a stacking
    context, and a blurred plate over the keeper would frost him. Split in two,
    the plate and the label are ordered against him independently: both are at
-   z-index 2 today, behind his 3, but only the plate has to be. Keep .panel
-   and .panels free of anything that forms a stacking context -- filter,
+   z-index 2 today, behind his 3, but only the plate has to be. Keep .cmp-panel
+   and .cmp-panels free of anything that forms a stacking context -- filter,
    opacity below 1, transform, will-change -- or the two halves lose that
    freedom, which is why :active scales these instead of the button. */
-.panel::before {
+.cmp-panel::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -504,7 +411,7 @@
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
-  box-shadow: 0 2px 10px rgba(0,0,0,.28) inset;
+  box-shadow: var(--cmp-plate-inset);
   transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
 
@@ -521,7 +428,7 @@
    centre column, and a multiplier printed across his kit read as a defect.
    Both plates stay fully clickable -- only the glyph is occluded, and only
    while he is standing idle in front of it. */
-.panel span {
+.cmp-panel span {
   position: relative;
   z-index: 2;
   display: block;
@@ -532,56 +439,54 @@
   /* The halo carries the glyph over the net, which is bright where the
      floodlights catch it. */
   text-shadow:
-    0 2px 6px rgba(0,0,0,.75),
-    0 0 14px rgba(0,0,0,.85),
-    0 0 3px rgba(0,0,0,.9);
+    var(--cmp-label-ink);
 }
 
 /* The two ×12 corners get the colored glass plate treatment. */
-.panel[data-mult="12"]::before {
+.cmp-panel[data-mult="12"]::before {
   border-color: var(--glass-second-brd);
   background: var(--glass-second-bg);
 }
-.panel[data-mult="12"] span { color: var(--second-soft); }
+.cmp-panel[data-mult="12"] span { color: var(--second-soft); }
 
 @media (hover: hover) {
-  .panel:hover::before {
+  .cmp-panel:hover::before {
     border-color: var(--accent);
-    box-shadow: var(--glow-accent), 0 2px 10px rgba(0,0,0,.28) inset;
+    box-shadow: var(--glow-accent), var(--cmp-plate-inset);
   }
 }
 
-.panel:active::before,
-.panel:active span { transform: scale(.97); }
+.cmp-panel:active::before,
+.cmp-panel:active span { transform: scale(.97); }
 
-.panel:focus-visible {
+.cmp-panel:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.panel.is-armed::before {
+.cmp-panel.is-armed::before {
   border-color: var(--accent);
   box-shadow: var(--glow-accent);
 }
 
 /* Panels stop responding while a shot is in flight. */
-#stage[data-state="shooting"] .panel,
-#stage[data-state="celebrate"] .panel,
-#stage[data-state="form"] .panel,
-#stage[data-state="shooting"] .ball,
-#stage[data-state="celebrate"] .ball,
-#stage[data-state="form"] .ball { pointer-events: none; }
+#tw-main[data-state="shooting"] .cmp-panel,
+#tw-main[data-state="celebrate"] .cmp-panel,
+#tw-main[data-state="form"] .cmp-panel,
+#tw-main[data-state="shooting"] .cmp-ball,
+#tw-main[data-state="celebrate"] .cmp-ball,
+#tw-main[data-state="form"] .cmp-ball { pointer-events: none; }
 
 /* ══ goalkeeper ═══════════════════════════════════════════════ */
 
 /* His shadow, on its own element so js/animator.js can shrink and fade it
    while he is in the air and snap it back when he lands. A diver whose
    shadow never changes size does not look like he left the ground, and the
-   drop-shadow filter on .keeper below cannot do this -- it is welded to the
+   drop-shadow filter on .cmp-keeper below cannot do this -- it is welded to the
    sprite and travels with it.
 
-   Below .panels so the plates and the multiplier labels stay readable. */
-.keeper-shadow {
+   Below .cmp-panels so the plates and the multiplier labels stay readable. */
+.cmp-keeper-shadow {
   position: absolute;
   z-index: 1;
   left: 50%;
@@ -594,7 +499,7 @@
   transform-origin: 50% 50%;
   will-change: transform, opacity;
   background: radial-gradient(closest-side,
-              rgba(0,0,0,.66), rgba(0,0,0,.30) 58%, transparent);
+              var(--cmp-shade), var(--cmp-shade-soft) 58%, transparent);
   filter: blur(1px);
 }
 
@@ -621,7 +526,7 @@
    Changing any of these three moves every dive, because js/animator.js states
    the dive offsets as percentages of THIS box. The two are derived together
    or not at all. */
-.keeper {
+.cmp-keeper {
   position: absolute;
   z-index: 3;
   left: 50%;
@@ -633,23 +538,23 @@
   transform-origin: 50% 100%;
   will-change: transform;
   background: center / 100% 100% no-repeat;
-  filter: drop-shadow(0 6px 12px rgba(0,0,0,.55));
+  filter: var(--cmp-figure-drop);
 }
 
-.keeper[data-pose="idle"]             { background-image: url("../assets/img/keeper-idle.webp"); }
-.keeper[data-pose="jump_L1"]          { background-image: url("../assets/img/keeper-jump_L1.webp"); }
-.keeper[data-pose="jump_L2"]          { background-image: url("../assets/img/keeper-jump_L2.webp"); }
-.keeper[data-pose="jump_R1"]          { background-image: url("../assets/img/keeper-jump_R1.webp"); }
-.keeper[data-pose="jump_R2"]          { background-image: url("../assets/img/keeper-jump_R2.webp"); }
-.keeper[data-pose="jump_center"]      { background-image: url("../assets/img/keeper-jump_center.webp"); }
-.keeper[data-pose="jump_center_down"] { background-image: url("../assets/img/keeper-jump_center_down.webp"); }
-.keeper[data-pose="ready"]            { background-image: url("../assets/img/keeper-ready.webp"); }
-.keeper[data-pose="cheer"]            { background-image: url("../assets/img/keeper-cheer.webp"); }
-.keeper[data-pose="beaten"]           { background-image: url("../assets/img/keeper-beaten.webp"); }
+.cmp-keeper[data-pose="idle"]             { background-image: url("assets/keeper-idle.webp"); }
+.cmp-keeper[data-pose="jump_L1"]          { background-image: url("assets/keeper-jump_L1.webp"); }
+.cmp-keeper[data-pose="jump_L2"]          { background-image: url("assets/keeper-jump_L2.webp"); }
+.cmp-keeper[data-pose="jump_R1"]          { background-image: url("assets/keeper-jump_R1.webp"); }
+.cmp-keeper[data-pose="jump_R2"]          { background-image: url("assets/keeper-jump_R2.webp"); }
+.cmp-keeper[data-pose="jump_center"]      { background-image: url("assets/keeper-jump_center.webp"); }
+.cmp-keeper[data-pose="jump_center_down"] { background-image: url("assets/keeper-jump_center_down.webp"); }
+.cmp-keeper[data-pose="ready"]            { background-image: url("assets/keeper-ready.webp"); }
+.cmp-keeper[data-pose="cheer"]            { background-image: url("assets/keeper-cheer.webp"); }
+.cmp-keeper[data-pose="beaten"]           { background-image: url("assets/keeper-beaten.webp"); }
 
 /* Idle breathing. The class is removed while a dive plays, so the scripted
    animation in animator.js is never fighting these keyframes. */
-.keeper.is-idling { animation: keeper-idle 2.4s ease-in-out infinite; }
+.cmp-keeper.is-idling { animation: keeper-idle 2.4s ease-in-out infinite; }
 
 @keyframes keeper-idle {
   0%, 100% { transform: translateX(-50%) translateY(0)      scaleY(1);    }
@@ -658,7 +563,7 @@
 
 /* ══ ball ═════════════════════════════════════════════════════ */
 
-.ball-zone {
+.cmp-ball-zone {
   position: relative;
   flex: 0 0 clamp(118px, 20cqh, 240px);
   container: ballzone / size;
@@ -669,7 +574,7 @@
 /* Tapping the ball is the "surprise me" shot: game.js picks a panel at random.
    It is a real button so it is reachable by keyboard and announced by screen
    readers, unlike the six plates which are aimed deliberately. */
-.ball {
+.cmp-ball {
   position: absolute;
   z-index: 20;
   left: 50%;
@@ -680,28 +585,28 @@
   padding: 0;
   border-radius: 50%;
   will-change: transform;
-  background: url("../assets/img/ball.webp") center / 100% 100% no-repeat;
-  filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)) drop-shadow(0 0 16px rgba(255,69,0,.35));
+  background: url("assets/ball.webp") center / 100% 100% no-repeat;
+  filter: var(--cmp-ball-drop) var(--cmp-ball-glow);
   transition: filter .18s ease, scale 140ms var(--ease-out);
 }
 
 /* The largest tap target on the page had no press state at all. `scale`
    rather than `transform`: the idle bob owns the transform, and a press that
    the bob overwrites is a press that never happened. */
-.ball:active { scale: .95; }
+.cmp-ball:active { scale: .95; }
 
 @media (hover: hover) {
-  .ball:hover {
-    filter: drop-shadow(0 10px 14px rgba(0,0,0,.55)) drop-shadow(0 0 26px rgba(255,69,0,.75));
+  .cmp-ball:hover {
+    filter: var(--cmp-ball-drop) var(--cmp-ball-glow-hover);
   }
 }
 
-.ball:focus-visible {
+.cmp-ball:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 4px;
 }
 
-.ball-zone::after {
+.cmp-ball-zone::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -710,7 +615,7 @@
   height: calc(var(--ball) * .146);
   margin-left: calc(var(--ball) * -.4375);
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(0,0,0,.55), transparent);
+  background: radial-gradient(closest-side, var(--cmp-spot-shade), transparent);
   filter: blur(2px);
   transition: opacity .16s ease;
 }
@@ -718,13 +623,13 @@
 /* This one belongs to the ball standing on the spot. The moment a shot is
    taken, js/fx.js draws a shadow that actually travels with the ball, so
    this has to clear out or there would be two of them. */
-#stage[data-state="shooting"] .ball-zone::after,
-#stage[data-state="celebrate"] .ball-zone::after,
-#stage[data-state="form"] .ball-zone::after { opacity: 0; }
+#tw-main[data-state="shooting"] .cmp-ball-zone::after,
+#tw-main[data-state="celebrate"] .cmp-ball-zone::after,
+#tw-main[data-state="form"] .cmp-ball-zone::after { opacity: 0; }
 
 /* A nudge that reads as "tap a panel". Class-gated so the scripted flight
    in game.js is never fighting these keyframes. */
-.ball.is-bobbing { animation: ball-bob 2s ease-in-out infinite; }
+.cmp-ball.is-bobbing { animation: ball-bob 2s ease-in-out infinite; }
 
 @keyframes ball-bob {
   0%, 100% { transform: translateY(0); }
@@ -734,7 +639,7 @@
 /* ══ call to action ═══════════════════════════════════════════ */
 
 /* Sits directly under the header, over the night sky. */
-.tagline {
+.cmp-tagline {
   position: relative;
   z-index: 10;
   flex: 0 0 auto;
@@ -746,13 +651,13 @@
 }
 
 /* Scrim fading down into the sky, so the headline never fights the floodlights. */
-.tagline::before {
+.cmp-tagline::before {
   content: "";
   position: absolute;
   inset: 0 0 -34px;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(4,4,6,.86), rgba(4,4,6,.55) 62%, transparent);
+  background: var(--cmp-sky-scrim);
 }
 
 /* The page has one headline treatment and this is it: black, condensed,
@@ -760,7 +665,7 @@
    the tagline and the offer read as one voice rather than two. The brandbook
    would have said Russo One here, but Russo One appears in no delivered
    screen and has no italic, and the design leans on the italic. */
-.tagline__text {
+.cmp-tagline__text {
   font-weight: var(--fw-black);
   font-stretch: var(--font-stretch-tight);
   font-style: italic;
@@ -768,11 +673,11 @@
   line-height: 1.06;
   letter-spacing: -.01em;
   text-transform: uppercase;
-  background: linear-gradient(180deg, #ffffff 40%, var(--accent-soft));
+  background: linear-gradient(180deg, var(--text) 40%, var(--accent-soft));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 2px 10px rgba(255,69,0,.30));
+  filter: var(--cmp-tagline-glow);
 }
 
 /* The gradient above is painted through the glyphs, so the text colour has to
@@ -782,14 +687,14 @@
    Hand the glyphs back a real colour, and take the scrim and the glow with it:
    both are decoration this mode has already discarded. */
 @media (forced-colors: active) {
-  .tagline__text {
+  .cmp-tagline__text {
     background: none;
     -webkit-background-clip: border-box;
     background-clip: border-box;
     color: CanvasText;
     filter: none;
   }
-  .tagline::before { display: none; }
+  .cmp-tagline::before { display: none; }
 }
 
 /* ══ the effects canvas ═══════════════════════════════════════
@@ -797,11 +702,11 @@
    Was .burst, and drew only confetti. It now carries the ball in flight,
    the ball's travelling shadow, its motion blur, the net taking the shot
    and the confetti -- everything js/fx.js draws. Deliberately NOT hidden
-   under prefers-reduced-motion the way .dust and .hit are: the ball itself
+   under prefers-reduced-motion the way .cmp-dust and .cmp-hit are: the ball itself
    lives here, so hiding it would leave nothing to watch. fx.js cuts the
    motion instead, at source. */
 
-.fx {
+.cmp-fx {
   position: absolute;
   inset: 0;
   z-index: 45;
@@ -812,7 +717,7 @@
   transition: opacity .2s ease;
 }
 
-.fx.is-live { opacity: 1; }
+.cmp-fx.is-live { opacity: 1; }
 
 /* ══ transient message ════════════════════════════════════════ */
 
@@ -824,9 +729,9 @@
    Placed against the goal line rather than at a percentage of the stage:
    --goal-base is where the posts meet the grass, and --gw scales the offset
    with the goal, so the caption keeps the same distance in front of it at
-   every size. It lives inside .pitch for exactly that reason -- outside it,
+   every size. It lives inside .cmp-pitch for exactly that reason -- outside it,
    neither custom property exists. */
-.msg {
+.cmp-msg {
   position: absolute;
   z-index: 30;
   left: 50%;
@@ -848,19 +753,19 @@
   transition: opacity .25s ease, transform .25s ease;
 }
 
-.msg.is-visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.cmp-msg.is-visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
 /* Landscape has no grass in front of the goal to sit on -- at 844x390 the
    goal already ends at y 324 of 390 -- so the caption goes to the foot of the
    pitch column instead, where it overlaps the net base rather than falling out
    of the pitch and being clipped by its overflow. Same query as the layout
    switch in css/stage.css. */
-@container viewport (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
-  .msg {
+@container tw-stage (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
+  .cmp-msg {
     top: auto;
     bottom: 3%;
     transform: translate(-50%, 0) scale(.9);
   }
 
-  .msg.is-visible { transform: translate(-50%, 0) scale(1); }
+  .cmp-msg.is-visible { transform: translate(-50%, 0) scale(1); }
 }

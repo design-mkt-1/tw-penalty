@@ -1,8 +1,91 @@
-/* Scripted penalty: the first attempt is always saved, the second always
+/* ═══════════════════════════════════════════════════════════════
+   TW-PENALTY — the mechanic
+
+   Scripted penalty: the first attempt is always saved, the second always
    scores. The panel the visitor picks never changes the outcome — it only
-   selects which dive and which ball trajectory play. */
+   selects which dive and which ball trajectory play.
+
+   This file is the controller. Three siblings carry the rest, and index.html
+   loads them BEFORE this one, because TW.ready() fires the moment the shell
+   has booted and this file uses all three inside it:
+
+     campaign/fx.js        CMPFx        the canvas: ball in flight, its
+                                        travelling shadow, the net, confetti
+     campaign/animator.js  CMPAnimator  the keeper's ten sprites and the dives
+     campaign/audio.js     CMPAudio     the seven clips and the mute state
+
+   ── What the shell owns, and this file must not touch ────────
+   The header, the footer and the whole registration card. The mechanic
+   reaches them only through window.TW:
+
+     TW.ready(fn)       run once the chrome is mounted and a language applied
+     TW.openForm()      open the registration dialog — the point of the page
+     TW.t(key)          a translated string
+     TW.on('lang')      re-label the six panels when the language changes
+     TW.on('formclose') put the pitch back when the card closes
+     TW.track(event)    analytics; a no-op unless an id is configured
+
+   Do not call showModal(), do not reach into the dialog, do not re-implement
+   the focus trap. This landing's old js/main.js and js/form.js did all three;
+   css/form.css and js/form.js do it for every campaign now.
+   ═══════════════════════════════════════════════════════════════ */
+
 (function () {
   'use strict';
+
+  /* ── the stage's own geometry ──────────────────────────────
+     Was js/stage.js. Two thirds of that file is css/stage.css now; what is
+     left is the canvas backing store, which cannot be set from CSS, and the
+     unit the hand-tuned distances in campaign/fx.js are scaled by. Both
+     belong to the mechanic, which is why they live here. */
+
+  /* The reference composition: every distance in campaign/fx.js was written
+     against a 360px goal and is multiplied by unit() at run time. */
+  var GOAL_REF = 360;
+
+  /* Cap the buffer at 2x: past that the scene costs more to draw than it
+     gains, and a 3x phone would allocate four times the pixels for nothing. */
+  function ratio() {
+    return Math.min(window.devicePixelRatio || 1, 2);
+  }
+
+  function fit() {
+    var main = document.getElementById('tw-main');
+    var canvas = document.querySelector('.cmp-fx');
+    if (!main || !canvas) return;
+
+    var r = main.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+
+    var k = ratio();
+    var w = Math.round(r.width * k);
+    var h = Math.round(r.height * k);
+    if (canvas.width === w && canvas.height === h) return;
+
+    canvas.width = w;
+    canvas.height = h;
+    // Draw in CSS pixels; the buffer scale is handled once, here.
+    canvas.getContext('2d').setTransform(k, 0, 0, k, 0, 0);
+  }
+
+  /* The width of the goal as rendered, over the width it was designed at. */
+  function unit() {
+    var g = document.querySelector('.cmp-goal');
+    if (!g) return 1;
+    var w = g.getBoundingClientRect().width;
+    return w ? w / GOAL_REF : 1;
+  }
+
+  var raf = 0;
+  function schedule() {
+    if (raf) cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(function () { raf = 0; fit(); });
+  }
+
+  window.CMPStage = { fit: fit, unit: unit, ratio: ratio };
+
+
+  /* ── the game ──────────────────────────────────────────────── */
 
   var stage, ball, keeper, msg, panels, anim, goal, dust, hit;
   var attempt = 0;
@@ -11,9 +94,9 @@
   var msgHideTimer = 0;
 
   /* Every timer shoot() starts, so reset() can cancel them. `busy` makes them
-     unreachable along the normal path, but reset() is also called from
-     form.js when the visitor presses Escape — that is, from outside this
-     state machine, in the middle of a sequence. */
+     unreachable along the normal path, but reset() is also called when the
+     visitor closes the card — that is, from outside this state machine, in
+     the middle of a sequence. */
   var timers = [];
 
   function later(fn, ms) {
@@ -79,12 +162,12 @@
   function say(text, ms) {
     clearTimeout(msgTimer);
     clearTimeout(msgHideTimer);
-    /* Unhide before writing, not after. .msg is role="status": a hidden
+    /* Unhide before writing, not after. .cmp-msg is role="status": a hidden
        element is not in the accessibility tree, so a text change made while it
        is still hidden can go unannounced entirely. */
     msg.hidden = false;
     msg.textContent = text;
-    TWFx.next(function () { msg.classList.add('is-visible'); });
+    CMPFx.next(function () { msg.classList.add('is-visible'); });
     msgTimer = setTimeout(function () {
       msg.classList.remove('is-visible');
       /* Held as well: clearTimeout(msgTimer) cannot reach a timer that timer
@@ -103,13 +186,14 @@
 
     var cell = panel.dataset.cell;
     var scores = attempt >= 2;
-    var T = TWAnimator.TIMING;
+    var T = CMPAnimator.TIMING;
 
     stage.dataset.state = 'shooting';
     panel.classList.add('is-armed');
-    TWAudio.play('kick', 0.9);
+    CMPAudio.play('kick', 0.9);
+    TW.track('shot', { attempt: attempt, cell: cell, mult: panel.dataset.mult });
 
-    var dive = scores ? TWAnimator.WRONG_WAY[cell] : TWAnimator.COVERS[cell];
+    var dive = scores ? CMPAnimator.WRONG_WAY[cell] : CMPAnimator.COVERS[cell];
     later(function () { anim.play(dive); }, DIVE_DELAY);
 
     // The plume and the jolt are the impact a still sprite cannot show. Which
@@ -121,28 +205,28 @@
     var impact = anim.impact(dive);
     later(function () {
       fx(dust, { '--dust-x': impact.x });
-      TWFx.shake(220, impact.force);
+      CMPFx.shake(220, impact.force);
     }, DIVE_DELAY + T.duration * impact.at);
 
     if (scores) {
-      TWFx.shoot(ball, panel, { duration: 640 })
+      CMPFx.shoot(ball, panel, { duration: 640 })
         .then(function (state) {
           mark(panel);
-          TWAudio.play('net', 0.8);
-          TWAudio.play('cheer', 0.7);
-          TWFx.netBulge(state.x, state.y, state.r * state.s);
-          TWFx.shake(320, 5);
-          TWFx.intoNet(state);
+          CMPAudio.play('net', 0.8);
+          CMPAudio.play('cheer', 0.7);
+          CMPFx.netBulge(state.x, state.y, state.r * state.s);
+          CMPFx.shake(320, 5);
+          CMPFx.intoNet(state);
           stage.dataset.state = 'celebrate';
           // A beat, then the confetti. 110 bits out of the strike point cover
           // the net bulge completely, and the bulge is over inside 520ms --
           // fired together, the net was never seen at all. The gap also reads
           // as a crowd taking a moment to realise.
           later(function () {
-            TWFx.burst(centre(panel));
+            CMPFx.burst(centre(panel));
             // With the burst, not with the goal: the 180ms gap is the whole
             // point of the delay, and a pop on the goal would close it.
-            TWAudio.play('confetti', 0.55);
+            CMPAudio.play('confetti', 0.55);
           }, 180);
           // He is still in the air when the ball crosses the line -- the dive
           // runs to DIVE_DELAY + T.duration = 650ms and the ball arrives at
@@ -151,35 +235,37 @@
             anim.react('beaten', { hold: 1200 });
             // Quiet: this one plays under net, cheer and the confetti, and is
             // meant to be felt rather than picked out. See tools/sfx.py.
-            TWAudio.play('slump', 0.5);
+            CMPAudio.play('slump', 0.5);
           }, 320);
-          say(TWI18n.t('msg.goal'), 1400);
+          say(TW.t('msg.goal'), 1400);
           return wait(1500);
         })
         .then(function () {
           panel.classList.remove('is-armed');
           stage.dataset.state = 'form';
           busy = false;
-          window.TWForm.open();
+          /* The two lines the whole integration comes down to. */
+          TW.track('game_win', { mechanic: 'penalty', cell: cell });
+          TW.openForm();
         })
         .catch(recover);
       return;
     }
 
-    TWFx.shoot(ball, panel, { duration: 620, stopAt: SAVE_AT })
+    CMPFx.shoot(ball, panel, { duration: 620, stopAt: SAVE_AT })
       .then(function (state) {
         mark(panel);
-        TWAudio.play('save', 0.9);
-        TWFx.shake(260, 4);
-        return TWFx.deflect(state, SAVE_SIDE[cell]);
+        CMPAudio.play('save', 0.9);
+        CMPFx.shake(260, 4);
+        return CMPFx.deflect(state, SAVE_SIDE[cell]);
       })
       .then(function () {
-        say(TWI18n.t('msg.miss'), 1800);
+        say(TW.t('msg.miss'), 1800);
         panel.classList.remove('is-armed');
         // He gets to enjoy it. react() stands him back up on its own once the
         // hold is over, so nothing else has to call reset here.
         anim.react('cheer', { hold: 900 });
-        return TWFx.home(ball);
+        return CMPFx.home(ball);
       })
       .then(function () {
         stage.dataset.state = 'idle';
@@ -206,11 +292,12 @@
 
   /* ── back to the start ────────────────────────────────────── */
 
-  /* Called when the registration card closes. The stage is still carrying
-     data-state="form", which holds .panel and .ball at pointer-events:none
-     (css/game.css), and `attempt` is still past the end of the scripted
-     sequence — so without this the page is dead, and clearing only the state
-     would make the next shot score instantly. Both have to be undone together. */
+  /* Runs when the registration card closes — TW.on('formclose') in init().
+     #tw-main is still carrying data-state="form", which holds .cmp-panel and
+     .cmp-ball at pointer-events:none, and `attempt` is still past the end of
+     the scripted sequence — so without this the page is dead, and clearing
+     only the state would make the next shot score instantly. Both have to be
+     undone together. */
   function reset() {
     clearTimers();
     clearTimeout(msgTimer);
@@ -227,7 +314,7 @@
 
     anim.reset();
     stage.dataset.state = 'idle';
-    return TWFx.home(ball);
+    return CMPFx.home(ball);
   }
 
   /* ── boot ─────────────────────────────────────────────────── */
@@ -235,31 +322,32 @@
   /* Six buttons whose whole text is a multiplier, and three of those repeat:
      "×12" twice, "×3" twice, "×2" twice. A pointer user tells them apart by
      where they are; a screen reader user had six buttons and three names. The
-     position comes from i18n, the multiplier from data-mult, so the numbers
-     are still written once. Re-runs on a language change — the first real
-     subscriber TWI18n.onChange has had. */
+     position comes from the campaign's string table, the multiplier from
+     data-mult, so the numbers are still written once. Re-runs on a language
+     change. */
   function labelPanels() {
     panels.forEach(function (p) {
       p.setAttribute('aria-label',
-        TWI18n.t('cell.' + p.dataset.cell) + ', ×' + p.dataset.mult);
+        TW.t('cell.' + p.dataset.cell) + ', ×' + p.dataset.mult);
     });
   }
 
   function init() {
-    stage  = document.getElementById('stage');
-    ball   = document.querySelector('.ball');
-    keeper = document.querySelector('.keeper');
-    goal   = document.querySelector('.goal');
-    dust   = document.querySelector('.dust');
-    hit    = document.querySelector('.hit');
-    msg    = document.querySelector('.msg');
-    panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
+    stage  = document.getElementById('tw-main');
+    ball   = document.querySelector('.cmp-ball');
+    keeper = document.querySelector('.cmp-keeper');
+    goal   = document.querySelector('.cmp-goal');
+    dust   = document.querySelector('.cmp-dust');
+    hit    = document.querySelector('.cmp-hit');
+    msg    = document.querySelector('.cmp-msg');
+    panels = Array.prototype.slice.call(document.querySelectorAll('.cmp-panel'));
 
-    TWFx.init();
-    anim = new TWAnimator.PoseAnimator(keeper,
-                                       document.querySelector('.keeper-shadow'));
+    fit();
+    CMPFx.init();
+    anim = new CMPAnimator.PoseAnimator(keeper,
+                                        document.querySelector('.cmp-keeper-shadow'));
     /* 283 kB of dive sprites that nothing needs until the first shot. The one
-       pose on screen, keeper-idle, comes from css/game.css and is already
+       pose on screen, keeper-idle, comes from campaign/main.css and is already
        loading. Warm the rest when the browser is idle, or on the first
        gesture, whichever comes first — a shot cannot start before that
        gesture, so the sprites are never late. */
@@ -278,7 +366,7 @@
     stage.dataset.state = 'idle';
 
     labelPanels();
-    TWI18n.onChange(labelPanels);
+    TW.on('lang', labelPanels);
 
     panels.forEach(function (p) {
       p.addEventListener('click', function () { shoot(p); });
@@ -290,11 +378,43 @@
     ball.addEventListener('click', function () {
       shoot(panels[Math.floor(Math.random() * panels.length)]);
     });
+
+    /* The card closing is the only way back to a live pitch. */
+    TW.on('formclose', reset);
+
+    /* The shell renders the mute button because campaign.js sets header.mute,
+       and deliberately does not wire it: the audio belongs to the mechanic,
+       so the handler does too. */
+    var muteBtn = document.querySelector('.tw-mute');
+    if (muteBtn) {
+      muteBtn.setAttribute('aria-pressed', String(CMPAudio.isMuted()));
+      muteBtn.addEventListener('click', function () { CMPAudio.toggle(); });
+    }
+
+    // Audio can only start inside a user gesture.
+    var unlock = function () {
+      CMPAudio.unlock();
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
+
+    /* The canvas is sized against #tw-main, whose height changes when the two
+       bars do: a soft keyboard, a rotation, or the landscape rule in
+       css/stage.css that drops the footer. */
+    window.addEventListener('resize', schedule);
+    window.addEventListener('orientationchange', schedule);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', schedule);
+      window.visualViewport.addEventListener('scroll', schedule);
+    }
   }
 
-  window.TWGame = {
-    init: init,
+  window.CMPGame = {
     reset: reset,
     attempt: function () { return attempt; }
   };
-})();
+
+  TW.ready(init);
+}());

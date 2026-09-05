@@ -86,16 +86,16 @@
      deeper crouch in the tween, which meant a low save down the middle was an
      upright keeper nudged downwards. It has its own render now, kneeling. */
   var SPRITES = {
-    idle:             'assets/img/keeper-idle.webp',
-    jump_L1:          'assets/img/keeper-jump_L1.webp',
-    jump_L2:          'assets/img/keeper-jump_L2.webp',
-    jump_R1:          'assets/img/keeper-jump_R1.webp',
-    jump_R2:          'assets/img/keeper-jump_R2.webp',
-    jump_center:      'assets/img/keeper-jump_center.webp',
-    jump_center_down: 'assets/img/keeper-jump_center_down.webp',
-    ready:            'assets/img/keeper-ready.webp',
-    cheer:            'assets/img/keeper-cheer.webp',
-    beaten:           'assets/img/keeper-beaten.webp'
+    idle:             'campaign/assets/keeper-idle.webp',
+    jump_L1:          'campaign/assets/keeper-jump_L1.webp',
+    jump_L2:          'campaign/assets/keeper-jump_L2.webp',
+    jump_R1:          'campaign/assets/keeper-jump_R1.webp',
+    jump_R2:          'campaign/assets/keeper-jump_R2.webp',
+    jump_center:      'campaign/assets/keeper-jump_center.webp',
+    jump_center_down: 'campaign/assets/keeper-jump_center_down.webp',
+    ready:            'campaign/assets/keeper-ready.webp',
+    cheer:            'campaign/assets/keeper-cheer.webp',
+    beaten:           'campaign/assets/keeper-beaten.webp'
   };
 
   /* The panel grid, column then row. */
@@ -395,7 +395,7 @@
 
   /* The keeper's own shadow, on its own element so it can shrink and fade
      independently of the body. It is the second half of the height cue the
-     ball gets from TWFx.drawShadow: a diver whose shadow stays the same size
+     ball gets from CMPFx.drawShadow: a diver whose shadow stays the same size
      never looks like he left the ground.
 
      Offsets are percentages of the shadow's own box, so they have to be
@@ -403,7 +403,7 @@
      and restated here as a ratio: .keeper is 21.81% of the goal wide and
      .keeper-shadow 25.5%. Change either there and this number is wrong here,
      silently -- the shadow simply drifts out from under him. Same hazard as
-     the sheet constants shared between tools/ball_sheet.py and js/fx.js.
+     the sheet constants shared between tools/ball_sheet.py and campaign/fx.js.
 
      The figures this comment used to quote, 30.6% and 34%, matched no
      stylesheet this project has shipped; the ratio was right and the numbers
@@ -495,7 +495,7 @@
     });
   };
 
-  window.TWAnimator = {
+  window.CMPAnimator = {
     PoseAnimator: PoseAnimator,
     POSES: POSES,
     SPRITES: SPRITES,

@@ -7,13 +7,13 @@
   /* confetti and slump are rendered by tools/sfx.py rather than sourced; the
      other five are clips. Every entry here is played from somewhere. */
   var FILES = {
-    kick:    'assets/audio/kick.mp3',
-    save:    'assets/audio/save.mp3',
-    net:     'assets/audio/net.mp3',
-    cheer:   'assets/audio/cheer.mp3',
-    whistle: 'assets/audio/whistle.mp3',
-    confetti:'assets/audio/confetti.mp3',
-    slump:   'assets/audio/slump.mp3'
+    kick:    'campaign/assets/audio/kick.mp3',
+    save:    'campaign/assets/audio/save.mp3',
+    net:     'campaign/assets/audio/net.mp3',
+    cheer:   'campaign/assets/audio/cheer.mp3',
+    whistle: 'campaign/assets/audio/whistle.mp3',
+    confetti:'campaign/assets/audio/confetti.mp3',
+    slump:   'campaign/assets/audio/slump.mp3'
   };
 
   var pool = {};
@@ -22,8 +22,8 @@
   /* Guarded the same way js/i18n.js guards its own two calls. Unguarded, a
      storage that throws — private mode, or an iframe with third-party storage
      blocked, and this is a landing page — kills this IIFE at parse time. Then
-     window.TWAudio never exists, main.js throws on the line after it, and
-     TWI18n, TWForm, TWGame and TWStage never initialise: the page is a dead
+     window.CMPAudio never exists, campaign/main.js throws on the line after it, and
+     the mechanic never initialises: the page is a dead
      picture with nothing in the console to say why. */
   var muted = false;
   try { muted = localStorage.getItem(KEY) === '1'; } catch (e) { /* private mode */ }
@@ -72,14 +72,14 @@
   function setMuted(next) {
     muted = !!next;
     try { localStorage.setItem(KEY, muted ? '1' : '0'); } catch (e) { /* private mode */ }
-    document.querySelectorAll('.mute').forEach(function (btn) {
+    document.querySelectorAll('.tw-mute').forEach(function (btn) {
       btn.setAttribute('aria-pressed', String(muted));
     });
   }
 
   load();
 
-  window.TWAudio = {
+  window.CMPAudio = {
     unlock: unlock,
     play: play,
     setMuted: setMuted,

@@ -10,8 +10,8 @@
    cannot separate from it convincingly. Those two are most of what makes a
    flight read as an object travelling away rather than a sticker shrinking.
 
-   Every hand-tuned distance in here is in the same units js/game.js used:
-   pixels at a 360px goal, multiplied by TWStage.unit(). */
+   Every hand-tuned distance in here is in the same units campaign/main.js used:
+   pixels at a 360px goal, multiplied by CMPStage.unit(). */
 (function () {
   'use strict';
 
@@ -42,7 +42,7 @@
      There were four near-identical rAF wrappers in the project (game.js,
      form.js, i18n.js and this one), each guarding against a hidden tab, where
      rAF never fires and would otherwise wedge a promise chain forever. That
-     guard lives here once now, exported as TWFx.next, and every actor shares
+     guard lives here once now, exported as CMPFx.next, and every actor shares
      a single loop, a single clear and a single frame of layout work.
 
      Keep it that way. The copies did not merely repeat each other -- two of
@@ -89,7 +89,7 @@
   }
 
   /* Run cb on the next frame -- or on a timer if the tab is hidden, where
-     requestAnimationFrame never fires at all. Exported as TWFx.next: game.js,
+     requestAnimationFrame never fires at all. Exported as CMPFx.next: game.js,
      form.js (the card and the error line) and i18n.js (the language menu) all
      come through here, and none of them keeps a copy any more. Each of those
      mounts an element at opacity 0 and adds a class one frame later, so a
@@ -114,7 +114,7 @@
     return stage.getBoundingClientRect();
   }
 
-  /* Stage-local coordinates. The canvas covers #stage and js/stage.js has
+  /* Stage-local coordinates. The canvas covers #stage and campaign/main.js has
      already set the buffer transform, so everything drawn here is in CSS
      pixels measured from the stage's top-left corner. */
   function local(el) {
@@ -129,7 +129,7 @@
   }
 
   function k() {
-    return window.TWStage ? TWStage.unit() : 1;
+    return window.CMPStage ? CMPStage.unit() : 1;
   }
 
   function clear() {
@@ -196,7 +196,7 @@
         function ()    { ballArt = img; }
       );
     };
-    img.src = 'assets/img/ball-spin.webp';
+    img.src = 'campaign/assets/ball-spin.webp';
   }
 
   /* r is the RADIUS AS DRAWN -- the resting radius already multiplied by the
@@ -269,7 +269,7 @@
      clips, so transforming it cannot show its edges. */
   function shake(ms, px) {
     if (reduced()) return;
-    var pitch = document.querySelector('.pitch');
+    var pitch = document.querySelector('.cmp-pitch');
     if (!pitch) return;
     var amp = px * k();
     var t0 = now();
@@ -565,7 +565,7 @@
 
   /* ══ celebration ══════════════════════════════════════════════
 
-     Moved from js/game.js unchanged in behaviour -- same 110 bits, same
+     Moved from campaign/main.js unchanged in behaviour -- same 110 bits, same
      upward fan, same Euler step with gravity and drag. It shares the loop
      and the canvas now instead of running a second one of each. */
 
@@ -624,14 +624,14 @@
   /* ══ boot ═════════════════════════════════════════════════════ */
 
   function init() {
-    stage = document.getElementById('stage');
-    canvas = document.querySelector('.fx');
-    goalEl = document.querySelector('.goal');
+    stage = document.getElementById('tw-main');
+    canvas = document.querySelector('.cmp-fx');
+    goalEl = document.querySelector('.cmp-goal');
     if (canvas) ctx = canvas.getContext('2d');
     loadBall();
   }
 
-  window.TWFx = {
+  window.CMPFx = {
     init: init,
     add: add,
     next: next,

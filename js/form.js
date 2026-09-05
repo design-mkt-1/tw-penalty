@@ -1,453 +1,402 @@
-/* Registration card behaviour. Client-side only: no request is ever sent.
-   Tab switch, per-field validation, then the "Registration complete" state
-   from the design.
+/* Top Win registration dialog — behaviour.
 
-   The card claims role="dialog" aria-modal="true" in the markup, so it has to
-   behave like one: focus moves in on open, Tab stays inside, Escape closes,
-   and focus goes back where it came from. */
+   SHARED FILE. A campaign never edits this; tools/drift.py fails CI if it
+   moves. What a campaign changes is in campaign.js: the offer, the five URLs,
+   the endpoint, the hidden fields.
+
+   The markup is built by js/shell.js and handed here through mount(). This
+   file only ever sees a DOM that already exists, which is why there is no
+   null-guarding maze below: mount() returns early once, and every handler
+   after it can assume its element.
+
+   ── The dialog is native ─────────────────────────────────────
+   showModal() puts it in the TOP LAYER. That is not a style preference, it is
+   what makes the card reusable: it renders identically over a fixed no-scroll
+   stage, an artboard hero and an ordinary scrolling page, with no z-index
+   negotiation with the campaign, and it cannot be trapped by an ancestor's
+   overflow or transform. It also deletes about eighty lines of hand-written
+   focus trap, inert bookkeeping, Escape handling and scroll locking that the
+   previous landing had to carry and could not share, because its overlay was
+   positioned inside a stage that only that page had.
+
+   ── Where the data goes ──────────────────────────────────────
+   Nowhere, by default. With form.endpoint empty and form.onRegister null the
+   validated payload is logged and, if form.demoDone is on, the confirmation
+   screen is walked anyway. The page is fully demoable before the platform
+   exists, and it cannot silently half-ship: there is no state in which it
+   looks wired and is not.
+
+   The password is in the payload, because a registration hook without one is
+   useless. That is also why form.endpoint must point at the operator's own
+   TLS endpoint and nowhere else. */
+
 (function () {
   'use strict';
 
-  /* IT will replace this with the real signup URL. While it is null the
-     "GO TO WEBSITE" button reloads the page, which is the safe stand-in.
-     Pointing it at the real destination is a one-line change. */
-  var DESTINATION = null;   // e.g. 'https://topwin.example/signup?utm=penalty'
+  var C = window.TW_CAMPAIGN || {};
+  var F = C.form || {};
 
-  /* The card has never sent anything anywhere, and this is where it would.
-     SUBMIT receives what the visitor actually filled in -- the contact, which
-     tab it came from, and the password they chose -- and null leaves the
-     behaviour exactly as it was. IT replaces the body; nothing else in this
-     file has to change.
+  var PHONE_DIGITS = F.phoneDigits || 9;
+  var PHONE_PREFIX = F.dialCode || '+380';
+  var PASSWORD_MIN = F.passwordMin || 8;
 
-     The password is in the payload because a registration hook without one is
-     useless, which also means this seam must point at the client's own
-     endpoint over TLS and nowhere else.
+  var EMAIL = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
 
-     It is called after the done screen is already up, and inside a try, so a
-     hook that throws cannot strand the visitor on a form that has stopped
-     responding. Same reason game.js catches around the shot sequence. */
-  var SUBMIT = null;   // e.g. function (data) { fetch('/signup', {method:'POST', body: JSON.stringify(data)}); }
-
-  /* Ukrainian mobile numbers are nine digits behind +380, and the design
-     writes the prefix into the field as fixed text rather than offering a
-     country picker. */
-  var PHONE_DIGITS = 9;
-  var PHONE_PREFIX = '+380';
-
-  /* The design shows a twelve-character password and an error that reads
-     "too short" without saying what short is. Eight is the rule this file
-     applies; it is stated here rather than buried in the test below. */
-  var PASSWORD_MIN = 8;
-
-  var FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),' +
-                  'select:not([disabled]),textarea:not([disabled]),' +
-                  '[tabindex]:not([tabindex="-1"])';
-
-  var sheet, card, stepForm, stepDone, tabs, phoneInput, emailInput,
-      passInput, agreeBox, eyeBtn;
+  var dialog, form, stepForm, stepDone;
+  var tabs = [], panels = {};
   var mode = 'email';
-  var lastFocus = null;
-  var closing = false;
+  var opener = null;
+  var mounted = false;
 
-  function field(name) {
-    return card.querySelector('.field[data-for="' + name + '"]');
+  function $(sel, root) { return (root || dialog).querySelector(sel); }
+  function $$(sel, root) {
+    return Array.prototype.slice.call((root || dialog).querySelectorAll(sel));
   }
-
-  function setTab(next) {
-    mode = next;
-    tabs.forEach(function (t) {
-      var on = t.dataset.tab === next;
-      t.classList.toggle('is-active', on);
-      t.setAttribute('aria-selected', String(on));
-    });
-    ['email', 'phone'].forEach(function (name) {
-      var f = field(name);
-      f.hidden = name !== next;
-      clearError(f);
-      f.classList.remove('is-valid');
-    });
-  }
-
-  /* The error line fades rather than appearing. It used to be a plain
-     `hidden` toggle, so a failed submit snapped 22px of card into existence
-     with nothing to explain the movement.
-
-     Two steps, because reset.css forces [hidden] to display:none !important
-     and display cannot be transitioned: unhide one frame ahead of the class
-     going on, and take the class off one transition ahead of hiding. The
-     language menu and the registration card itself both do this already. */
-  var ERR_OUT = 160;
-  var errTimers = {};
-
-  function clearError(f) {
-    f.classList.remove('is-invalid');
-    var input = f.querySelector('input');
-    if (input) input.removeAttribute('aria-invalid');
-    var e = f.querySelector('.err');
-    if (!e || e.hidden) return;
-    e.classList.remove('is-shown');
-    clearTimeout(errTimers[e.id]);
-    errTimers[e.id] = setTimeout(function () { e.hidden = true; }, ERR_OUT);
-  }
-
-  /* `focus` is false for every field after the first: showing three errors
-     and focusing the last one would put the cursor at the bottom of the form
-     and read the wrong message out. */
-  function showError(f, focus) {
-    f.classList.add('is-invalid');
-    f.classList.remove('is-valid');
-    /* The red ring is only half the message. aria-invalid states it, and the
-       focus move is what makes aria-describedby read the error out: nothing
-       announces a message that arrives while focus sits on the dialog. */
-    var input = f.querySelector('input');
-    if (input) {
-      input.setAttribute('aria-invalid', 'true');
-      if (focus) input.focus({ preventScroll: true });
-    }
-    var e = f.querySelector('.err');
-    if (!e) return;
-    clearTimeout(errTimers[e.id]);
-    e.hidden = false;
-    TWFx.next(function () { e.classList.add('is-shown'); });
-  }
+  function t(key, vars) { return window.TWI18n ? TWI18n.t(key, vars) : key; }
 
   /* ── validation ───────────────────────────────────────────── */
 
-  /* Each of these returns the value to keep, or null. They do not touch the
-     DOM: the caller decides whether a failure is worth showing yet, which is
-     what lets the same tests drive both the submit path and the live green
-     border the success state (19:4635) asks for. */
+  /* Ukrainian mobile numbers are nine digits behind +380, and visitors type
+     them in three shapes. All three normalise to the same canonical value,
+     because a number rejected for having the country code in it is a number
+     the visitor typed correctly. */
+  function phoneDigits() {
+    var raw = $('#tw-phone').value.replace(/\D/g, '');
+    var cc = PHONE_PREFIX.replace(/\D/g, '');
+    if (cc && raw.indexOf(cc) === 0) raw = raw.slice(cc.length);      // 380XXXXXXXXX
+    else if (raw.length === PHONE_DIGITS + 1 && raw[0] === '0') raw = raw.slice(1); // 0XXXXXXXXX
+    return raw;
+  }
 
-  function readContact() {
-    var value = (mode === 'phone' ? phoneInput : emailInput).value.trim();
+  function value(name) {
+    return name === 'phone' ? PHONE_PREFIX + phoneDigits() : $('#tw-email').value.trim();
+  }
 
-    if (mode === 'phone') {
-      var digits = value.replace(/[^\d]/g, '');
+  var CHECK = {
+    email:    function () { return EMAIL.test($('#tw-email').value.trim()); },
+    phone:    function () { return phoneDigits().length === PHONE_DIGITS; },
+    password: function () { return $('#tw-password').value.length >= PASSWORD_MIN; }
+  };
 
-      /* Three forms reach this field and all three are the same number:
-         931234567 as the design's placeholder asks for it, 0931234567 with
-         the trunk zero people type out of habit, and 380931234567 pasted
-         with the country code -- which has to lose it or the done screen
-         reads "+380 +380931234567".
+  var ERR_KEY = { email: 'err.email', phone: 'err.phone', password: 'err.password' };
 
-         Keyed on the total length rather than on the prefix, so a national
-         number that itself begins 380 is never mistaken for a country code:
-         at nine digits it is already the right length and nothing is cut. */
-      if (digits.length === 12 && digits.indexOf('380') === 0) digits = digits.slice(3);
-      else if (digits.length === 10 && digits.charAt(0) === '0') digits = digits.slice(1);
+  function field(name) { return $('.tw-field[data-field="' + name + '"]'); }
 
-      if (digits.length !== PHONE_DIGITS || /[a-z]/i.test(value)) return null;
-      // E.164, unspaced: this value is what the SUBMIT hook receives, and a
-      // hook wants the canonical number. The spacing is a display concern and
-      // lives in shown() below.
-      return PHONE_PREFIX + digits;
+  /* Two attributes and a message, in one place, so a field can never end up
+     marked valid and invalid at once. `state` is 'valid' | 'invalid' | null. */
+  function mark(name, state) {
+    var el = field(name);
+    var input = $('input', el);
+    var err = $('.tw-err', el);
+
+    if (state === 'valid') el.setAttribute('data-valid', ''); else el.removeAttribute('data-valid');
+    if (state === 'invalid') el.setAttribute('data-invalid', ''); else el.removeAttribute('data-invalid');
+    input.setAttribute('aria-invalid', String(state === 'invalid'));
+
+    if (state === 'invalid') {
+      err.textContent = t(ERR_KEY[name]);
+      /* reset.css forces [hidden] { display: none !important } and display
+         cannot be transitioned, so: unhide, let a frame pass, then add the
+         class the transition runs on. The language menu does the same. */
+      err.hidden = false;
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { err.classList.add('is-shown'); });
+      });
+    } else {
+      err.classList.remove('is-shown');
+      err.hidden = true;
+      err.textContent = '';
+    }
+  }
+
+  /* Live checking only ever ADDS the valid mark. A field is never turned red
+     while the visitor is still typing it -- an email is invalid for most of
+     the time it takes to write one, and saying so mid-word is scolding, not
+     helping. Red arrives on blur, or on submit. */
+  function live(name) {
+    if (CHECK[name]()) mark(name, 'valid');
+    else if (field(name).hasAttribute('data-invalid')) mark(name, null);
+  }
+
+  function grade(name) {
+    var el = field(name);
+    var input = $('input', el);
+    if (!input.value) { mark(name, null); return true; }   // empty is not yet wrong
+    var ok = CHECK[name]();
+    mark(name, ok ? 'valid' : 'invalid');
+    return ok;
+  }
+
+  /* Marks every field, then focuses the FIRST bad one only. role="alert" on
+     the message announces it; the focus move is what locates it. One without
+     the other leaves a screen-reader user told that something is wrong and
+     not told where. */
+  function validate() {
+    var order = [mode, 'password'];
+    var first = null;
+
+    order.forEach(function (name) {
+      var ok = CHECK[name]();
+      mark(name, ok ? 'valid' : 'invalid');
+      if (!ok && !first) first = name;
+    });
+
+    var agree = $('#tw-agree');
+    if (!agree.checked) {
+      agree.setAttribute('aria-invalid', 'true');
+      if (!first) { agree.focus({ preventScroll: false }); return false; }
+    } else {
+      agree.setAttribute('aria-invalid', 'false');
     }
 
-    return /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(value) ? value : null;
+    if (first) { $('input', field(first)).focus({ preventScroll: false }); return false; }
+    return agree.checked;
   }
 
-  /* The complete screen groups the number the way the design writes it,
-     "+380 93 123 4567", which is also how the placeholder groups it. */
-  function shown(contact) {
-    if (mode !== 'phone') return contact;
-    var d = contact.slice(PHONE_PREFIX.length);
-    return PHONE_PREFIX + ' ' + d.slice(0, 2) + ' ' + d.slice(2, 5) + ' ' + d.slice(5);
+  /* ── tabs ─────────────────────────────────────────────────── */
+
+  function setMode(next) {
+    if (next === mode) return;
+    mode = next;
+    tabs.forEach(function (tab) {
+      tab.setAttribute('aria-selected', String(tab.getAttribute('data-mode') === mode));
+    });
+    Object.keys(panels).forEach(function (key) { panels[key].hidden = key !== mode; });
+    /* The field that just left the screen keeps no error: its message would
+       be announced by a live region the visitor can no longer see. */
+    mark(next === 'email' ? 'phone' : 'email', null);
+    $('input', panels[mode]).focus({ preventScroll: true });
   }
 
-  function readPassword() {
-    var value = passInput.value;
-    return value.length >= PASSWORD_MIN ? value : null;
+  /* ── submit ───────────────────────────────────────────────── */
+
+  function payload() {
+    var out = {
+      method:     mode,
+      contact:    value(mode),
+      email:      mode === 'email' ? value('email') : '',
+      phone:      mode === 'phone' ? value('phone') : '',
+      password:   $('#tw-password').value,
+      consent:    $('#tw-agree').checked,
+      lang:       window.TWI18n ? TWI18n.tag() : document.documentElement.lang,
+      bonus:      (C.offer || {}).code || '',
+      landing_id: C.id || ''
+    };
+    var extra = F.hiddenFields || {}, k;
+    for (k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) out[k] = extra[k];
+    /* The campaign's own UTM block and whatever rode in on the landing URL,
+       so a conversion can be attributed without a cookie. */
+    var params = window.TW ? TW.params() : {};
+    for (k in params) if (Object.prototype.hasOwnProperty.call(params, k)) out[k] = params[k];
+    return out;
   }
 
-  /* The green border and tick of the success state, applied as the visitor
-     types. Only ever adds the valid mark -- turning a field red while
-     somebody is still halfway through typing into it is the one thing a live
-     check must not do. */
-  function mark(f, ok) {
-    f.classList.toggle('is-valid', !!ok);
-    if (ok) clearError(f);
+  function formError(message) {
+    var box = $('.tw-err[data-form-error]');
+    box.textContent = message;
+    box.hidden = false;
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { box.classList.add('is-shown'); });
+    });
   }
 
-  function submit(ev) {
+  function onSubmit(ev) {
     ev.preventDefault();
+    if (!validate()) return;
 
-    var contactField = field(mode);
-    var passField = field('password');
-    var contact = readContact();
-    var password = readPassword();
-    var first = true;
+    var data = payload();
+    if (window.TW) TW.track('form_submit', { method: data.method });
 
-    if (!contact) { showError(contactField, first); first = false; }
-    if (!password) { showError(passField, first); first = false; }
+    var send = null;
+    if (typeof F.onRegister === 'function') send = F.onRegister(data);
+    else if (F.endpoint) {
+      send = fetch(F.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json().catch(function () { return null; });
+      });
+    }
 
-    /* The design has no error state for the 18+ box -- it is drawn checked in
-       every screen -- so an unchecked one is marked and focused rather than
-       given a message this card has no words for. */
-    agreeBox.setAttribute('aria-invalid', String(!agreeBox.checked));
-    if (!agreeBox.checked) {
-      if (first) agreeBox.focus({ preventScroll: true });
+    if (!send) {
+      /* The shipped default. Loud in the console, invisible to the visitor,
+         and impossible to mistake for a working integration. */
+      console.info(
+        '[' + (C.id || 'tw') + '] The form is valid but not wired to anything. ' +
+        'Set form.endpoint (or form.onRegister) in campaign.js. Payload:', data);
+      if (F.demoDone) showDone({ login: data.contact, password: data.password });
       return;
     }
 
-    if (!contact || !password) return;
+    if (!send.then) send = Promise.resolve(send);
+    send.then(function (res) {
+      if (window.TW) TW.track('form_success', { method: data.method });
+      showDone(res && (res.login || res.password)
+        ? res
+        : { login: data.contact, password: data.password });
+    }, function () {
+      formError(t('err.network'));
+    });
+  }
 
-    /* The design labels the row "Login" whichever tab was used, so unlike the
-       card this replaces there is no label to swap between phone and email. */
-    stepDone.querySelector('.done__id').textContent = shown(contact);
-    stepDone.querySelector('.done__pw').textContent = password;
+  /* ── the confirmation screen ──────────────────────────────── */
+
+  /* The promo header stays; only the body below it swaps, so the dialog is
+     never closed and reopened and the visitor never sees it flicker.
+
+     Values go in with textContent, never innerHTML: they are whatever the
+     visitor typed, or whatever an endpoint returned, and neither is trusted
+     markup. */
+  function showDone(res) {
+    res = res || {};
+    $('.tw-done__id').textContent = res.login || '';
+    $('.tw-done__pw').textContent = res.password || '';
 
     stepForm.hidden = true;
     stepDone.hidden = false;
-    // #promo-title survives the step swap now -- the promo header sits outside
-    // both steps -- but the dialog should still be named by what it shows.
-    card.setAttribute('aria-labelledby', 'done-title');
-    card.scrollTop = 0;
-    TWAudio.play('whistle', 0.5);
+    if (window.TWI18n) TWI18n.apply(stepDone);
 
-    /* Last, and guarded: the visitor is already on the done screen, so a hook
-       that throws costs a delivery rather than the card. */
-    if (SUBMIT) {
-      try {
-        SUBMIT({
-          via: mode,
-          contact: contact,
-          password: password,
-          lang: document.documentElement.lang || null
-        });
-      } catch (err) {
-        console.error('[tw-penalty] the submit hook failed', err);
-      }
-    }
+    /* Focus the heading so the swap is announced. It is tabindex="-1" and
+       css/form.css removes its ring: a ring on a heading nobody clicked reads
+       as a rendering fault. */
+    $('.tw-done__title').focus({ preventScroll: true });
+    if (window.TW) TW.emit('register', res);
   }
 
-  /* ── password reveal ──────────────────────────────────────── */
-
-  function toggleEye() {
-    var shown = passInput.type === 'text';
-    passInput.type = shown ? 'password' : 'text';
-    eyeBtn.setAttribute('aria-pressed', String(!shown));
-    // Keep the caret where it was: changing type moves focus off the input in
-    // some browsers, and the visitor is mid-password.
-    passInput.focus({ preventScroll: true });
+  function showForm() {
+    stepDone.hidden = true;
+    stepForm.hidden = false;
   }
 
-  /* ── copy buttons ─────────────────────────────────────────── */
-
-  var copyTimer = 0;
-
-  function copy(btn) {
-    var target = stepDone.querySelector(btn.getAttribute('data-copy'));
-    if (!target) return;
-    var text = target.textContent;
-
-    /* clipboard.writeText needs a secure context and permission, and the
-       whole point of this button is that the visitor keeps their details --
-       so a refusal selects the text instead of failing silently. */
+  /* Clipboard first; the selection fallback is for a page opened over plain
+     http or from a file, where navigator.clipboard is simply undefined.
+     Someone will double-click the HTML. */
+  function copy(button) {
+    var text = $(button.getAttribute('data-copy')).textContent;
     var done = function () {
-      btn.classList.add('is-copied');
-      clearTimeout(copyTimer);
-      copyTimer = setTimeout(function () {
-        btn.classList.remove('is-copied');
-      }, 1200);
+      button.classList.add('is-copied');
+      button.setAttribute('aria-label', t('done.copied'));
+      setTimeout(function () {
+        button.classList.remove('is-copied');
+        button.setAttribute('aria-label', t('done.copy'));
+      }, 1600);
     };
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done, function () { select(target); });
+      navigator.clipboard.writeText(text).then(done, function () { legacy(text, done); });
     } else {
-      select(target);
+      legacy(text, done);
     }
   }
 
-  function select(el) {
-    var range = document.createRange();
-    range.selectNodeContents(el);
-    var sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
-
-  /* ── focus containment ────────────────────────────────────── */
-
-  /* Only what is genuinely on screen: the phone field is hidden while the
-     email tab is active, and one of the two steps is always hidden. */
-  function focusables() {
-    return Array.prototype.filter.call(
-      card.querySelectorAll(FOCUSABLE),
-      function (el) { return el.getClientRects().length > 0; }
-    );
-  }
-
-  /* Every focus() call passes preventScroll: the page must never scroll, and
-     the browser's default scroll-into-view would break that on its own. */
-  function onKeydown(ev) {
-    if (ev.key === 'Escape') {
-      ev.preventDefault();
-      close();
-      return;
-    }
-    if (ev.key !== 'Tab') return;
-
-    var list = focusables();
-    if (!list.length) return;
-
-    var first = list[0];
-    var last = list[list.length - 1];
-
-    if (!card.contains(document.activeElement)) {
-      ev.preventDefault();
-      (ev.shiftKey ? last : first).focus({ preventScroll: true });
-    } else if (ev.shiftKey && document.activeElement === first) {
-      ev.preventDefault();
-      last.focus({ preventScroll: true });
-    } else if (!ev.shiftKey && document.activeElement === last) {
-      ev.preventDefault();
-      first.focus({ preventScroll: true });
-    }
+  function legacy(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { /* nothing to offer */ }
+    document.body.removeChild(ta);
   }
 
   /* ── open / close ─────────────────────────────────────────── */
 
-  /* Tab is trapped, but a screen reader's virtual cursor is not: without this
-     it browses the header, the six targets and the ball behind a dialog that
-     claims aria-modal. inert takes them out of the accessibility tree and out
-     of hit-testing in one attribute. Everything under #stage except the sheet
-     itself, which is where the card lives. */
-  function background(off) {
-    Array.prototype.forEach.call(sheet.parentNode.children, function (el) {
-      if (el === sheet) return;
-      if (off) el.setAttribute('inert', '');
-      else el.removeAttribute('inert');
-    });
-  }
-
   function open() {
-    if (!sheet.hidden) return;
-    lastFocus = document.activeElement;
-    closing = false;
-
-    sheet.hidden = false;
-    sheet.setAttribute('aria-hidden', 'false');
-    background(true);
-    document.addEventListener('keydown', onKeydown, true);
-
-    TWFx.next(function () {
-      sheet.classList.add('is-open');
-      // The card itself, not the first field: on a phone, focusing a text
-      // input pops the soft keyboard the instant the goal is scored.
-      card.focus({ preventScroll: true });
-    });
+    if (!mounted || dialog.open) return;
+    opener = document.activeElement;
+    showForm();
+    dialog.showModal();
+    if (window.TW) TW.emit('formopen');
   }
 
-  /* onDone runs once the card is fully gone. "GO TO WEBSITE" passes the
-     navigation; Escape passes nothing and simply hands the pitch back. */
-  function close(onDone) {
-    if (closing || sheet.hidden) return;
-    closing = true;
-
-    sheet.classList.remove('is-open');
-    document.removeEventListener('keydown', onKeydown, true);
-
-    setTimeout(function () {
-      sheet.hidden = true;
-      sheet.setAttribute('aria-hidden', 'true');
-      closing = false;
-      restore();
-
-      // Before the focus restore below: focus() cannot land inside inert.
-      background(false);
-
-      if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
-      lastFocus = null;
-
-      // The stage still carries data-state="form", which holds .panel and
-      // .ball at pointer-events:none, and the attempt counter is still past
-      // the end of the scripted sequence. Hand both back to the game, or the
-      // page stays dead behind a card nobody can see.
-      if (window.TWGame && TWGame.reset) TWGame.reset();
-
-      if (typeof onDone === 'function') onDone();
-    }, 280);
+  function close() {
+    if (mounted && dialog.open) dialog.close();
   }
 
-  /* Back to the opening state, so a second visit does not start on the
-     complete screen with the previous answers still sitting in the fields.
-     Every control the card owns is listed here: the one the card this
-     replaces forgot was the only one it had that this function did not
-     name. */
-  function restore() {
-    stepDone.hidden = true;
-    stepForm.hidden = false;
-    card.setAttribute('aria-labelledby', 'promo-title');
-    emailInput.value = '';
-    phoneInput.value = '';
-    passInput.value = '';
-    passInput.type = 'password';
-    eyeBtn.setAttribute('aria-pressed', 'false');
-    // Checked is the design's default state, not merely the initial one.
-    agreeBox.checked = true;
-    agreeBox.removeAttribute('aria-invalid');
-    clearError(field('password'));
-    field('password').classList.remove('is-valid');
-    setTab('email');
-    card.scrollTop = 0;
+  /* ── mount ────────────────────────────────────────────────── */
+
+  function mount(root) {
+    dialog = root;
+    if (!dialog) return;
+
+    form = $('#tw-form');
+    stepForm = $('[data-step="form"]');
+    stepDone = $('[data-step="done"]');
+
+    tabs = $$('.tw-tab');
+    panels.email = $('.tw-field[data-field="email"]');
+    panels.phone = $('.tw-field[data-field="phone"]');
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () { setMode(tab.getAttribute('data-mode')); });
+    });
+
+    ['email', 'phone', 'password'].forEach(function (name) {
+      var input = $('input', field(name));
+      input.addEventListener('input', function () { live(name); });
+      input.addEventListener('blur', function () { grade(name); });
+    });
+
+    /* The field accepts the number in three shapes and the validator
+       normalises all three, but the box still showed what was typed -- so a
+       visitor who pasted 380931234567 read "+380 380931234567" and could not
+       tell whether it had been understood. Written back on blur, once the
+       number is complete, so nothing is rewritten mid-typing. */
+    $('#tw-phone').addEventListener('blur', function () {
+      var digits = phoneDigits();
+      if (digits.length === PHONE_DIGITS) this.value = digits;
+    });
+
+    var eye = $('.tw-eye');
+    eye.addEventListener('click', function () {
+      var input = $('#tw-password');
+      var shown = input.type === 'text';
+      input.type = shown ? 'password' : 'text';
+      eye.setAttribute('aria-pressed', String(!shown));
+      eye.setAttribute('aria-label', t(shown ? 'field.reveal' : 'field.hide'));
+      input.focus({ preventScroll: true });
+    });
+
+    $('#tw-agree').addEventListener('change', function () {
+      this.setAttribute('aria-invalid', String(!this.checked));
+    });
+
+    form.addEventListener('submit', onSubmit);
+
+    $$('[data-tw-close]').forEach(function (b) {
+      b.addEventListener('click', function () { close(); });
+    });
+
+    $$('.tw-copy').forEach(function (b) {
+      b.addEventListener('click', function () { copy(b); });
+    });
+
+    /* `close` fires for Escape and for the close button alike, so focus
+       restoration lives here once rather than at every exit. */
+    dialog.addEventListener('close', function () {
+      if (opener && document.contains(opener)) opener.focus({ preventScroll: true });
+      opener = null;
+      if (window.TW) TW.emit('formclose');
+    });
+
+    /* A click on the backdrop lands on the dialog element itself, never on
+       anything inside the card. */
+    dialog.addEventListener('click', function (ev) {
+      if (ev.target === dialog) close();
+    });
+
+    mounted = true;
   }
 
-  function go() {
-    if (DESTINATION) window.location.assign(DESTINATION);
-    else window.location.reload();
-  }
-
-  /* ── boot ─────────────────────────────────────────────────── */
-
-  function init() {
-    sheet    = document.querySelector('.sheet');
-    card     = sheet.querySelector('.card');
-    stepForm = card.querySelector('[data-step="form"]');
-    stepDone = card.querySelector('[data-step="done"]');
-    tabs     = Array.prototype.slice.call(card.querySelectorAll('.tab'));
-    emailInput = card.querySelector('#tw-email');
-    phoneInput = card.querySelector('#tw-phone');
-    passInput  = card.querySelector('#tw-pass');
-    agreeBox   = card.querySelector('#tw-agree');
-    eyeBtn     = card.querySelector('.eye');
-
-    tabs.forEach(function (t) {
-      t.addEventListener('click', function () { setTab(t.dataset.tab); });
-    });
-
-    [emailInput, phoneInput].forEach(function (input) {
-      input.addEventListener('input', function () {
-        var f = input.closest('.field');
-        clearError(f);
-        mark(f, readContact());
-      });
-    });
-
-    passInput.addEventListener('input', function () {
-      var f = passInput.closest('.field');
-      clearError(f);
-      mark(f, readPassword());
-    });
-
-    agreeBox.addEventListener('change', function () {
-      if (agreeBox.checked) agreeBox.removeAttribute('aria-invalid');
-    });
-
-    eyeBtn.addEventListener('click', toggleEye);
-
-    Array.prototype.forEach.call(card.querySelectorAll('.copy'), function (btn) {
-      btn.addEventListener('click', function () { copy(btn); });
-    });
-
-    card.addEventListener('submit', submit);
-
-    card.querySelector('[data-action="close"]')
-        .addEventListener('click', function () { close(go); });
-
-    // The soft keyboard changes the usable height; re-fit the stage around it.
-    card.addEventListener('focusin', function () { TWStage.fit(); });
-    card.addEventListener('focusout', function () { TWStage.fit(); });
-  }
-
-  window.TWForm = { init: init, open: open, close: close };
-})();
+  window.TWForm = {
+    mount: mount,
+    open: open,
+    close: close,
+    showDone: showDone,
+    isOpen: function () { return !!(dialog && dialog.open); }
+  };
+}());

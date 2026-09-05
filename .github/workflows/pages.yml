@@ -1,13 +1,21 @@
-name: Deploy to GitHub Pages
+# Guards on every push and every pull request; build and deploy only on main.
+#
+# The order matters and is not cosmetic. In the landing this workflow is taken
+# from, the guards lived inside the build job, which only ran after a merge --
+# so every guard reported a problem that was already on main. That is how the
+# hryvnia bug reached production. They run on pull_request here for that reason.
+#
+# THE PAGES SOURCE MUST BE SET TO "GitHub Actions" in the repository settings.
+# Left on a branch, the legacy Jekyll builder succeeds and publishes the WHOLE
+# repository -- tools/, docs/, raw/ and all -- bypassing the allowlist below
+# entirely, and nothing here warns you.
 
-# The Pages source for this repo is "GitHub Actions", so a workflow has to
-# publish the site — with no workflow the site is enabled but serves 404.
-# Only the files the page actually needs are uploaded: raw/ holds 22 MB of
-# source renders that tools/cutout.py consumes, and none of it is served.
+name: Pages
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -15,31 +23,69 @@ permissions:
   pages: write
   id-token: write
 
-# Let a running deploy finish rather than cancelling it mid-publish.
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  build:
+  guards:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install the guards' dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install fonttools brotli playwright
+          python -m playwright install --with-deps chromium
+
+      # The shared files are the template. A campaign clone that has edited one
+      # of them has forked, which is the failure this whole repo exists to stop.
+      - name: drift — the shared files are unchanged
+        run: python tools/drift.py
+
+      # Colours live in css/tokens.css and nowhere else. This is the guard that
+      # would have caught every colour divergence in this project's history.
+      - name: tokens — no colour literal outside tokens.css
+        run: python tools/tokens.py --check
+
+      # A missing glyph renders as something, from a face nobody chose. Run
+      # after the final copy, which is why it is a gate and not a checklist item.
+      - name: fonts — every rendered character exists in a shipped face
+        run: python tools/fonts.py --check
+
+      # A real browser, every viewport, every language. Catches what no text
+      # check can see.
+      - name: smoke — the page works
+        run: python tools/smoke.py
+
+  build:
+    needs: guards
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # An explicit allowlist, never `cp -r .`. tools/, docs/, raw/ and the
+      # dotfiles must 404 on the live URL, and a copy-everything build is one
+      # careless commit away from publishing whatever lands in the repo.
       - name: Stage the served files
         run: |
           mkdir -p _site
-          cp -r index.html .nojekyll css js assets _site/
-          du -sh _site
+          cp -r index.html campaign.js .nojekyll css js campaign assets _site/
 
       - uses: actions/configure-pages@v5
-
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
 
   deploy:
     needs: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

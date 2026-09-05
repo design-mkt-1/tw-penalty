@@ -1,3 +1,10 @@
+/* Top Win shell reset.
+
+   Global on purpose: a campaign landing page owns its whole document. If a
+   clone is ever embedded inside the real platform instead of deployed as its
+   own page, delete the `html, body` rule below -- it is the only rule here
+   that reaches outside the shell -- and leave the rest. */
+
 *, *::before, *::after { box-sizing: border-box; }
 
 * { margin: 0; padding: 0; }
@@ -34,7 +41,7 @@ a { color: inherit; text-decoration: none; }
    Used by the card's field labels, where the design puts the word inside the
    box as a placeholder -- and a placeholder is not a name, and leaves with the
    first keystroke. */
-.sr-only {
+.tw-sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
