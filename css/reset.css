@@ -17,6 +17,13 @@ html, body {
 
 img, svg { display: block; max-width: 100%; }
 
+/* `* { padding: 0 }` above removes the indent but NOT the marker, and a
+   marker on a campaign's own list is the bug that reads as a broken layout:
+   nine cards on a grid, each with a white dot beside it. css/shell.css sets
+   this on its own two lists and kept its own counsel about everyone else's,
+   so every campaign that used a <ul> found it the same way. */
+ul, ol { list-style: none; }
+
 button {
   font: inherit;
   color: inherit;
