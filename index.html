@@ -67,7 +67,7 @@
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/shell.css">
 <link rel="stylesheet" href="css/form.css">
-<link rel="stylesheet" href="css/stage.css">
+<link rel="stylesheet" href="css/fold.css">
 <link rel="stylesheet" href="campaign/main.css">
 
 <noscript><style>
@@ -110,6 +110,12 @@
      the right words paint before any script runs. -->
 
 <main id="tw-main" data-state="idle">
+  <!-- The wrapper is not decoration. css/fold.css makes #tw-main a size
+       container, and a container cannot be restyled by a query against
+       itself -- so the landscape arrangement in campaign/main.css lives on
+       this element and asks tw-main about the space it got. data-state stays
+       on <main>, where the pointer-events rules read it. -->
+  <div class="cmp-stage">
 
   <!-- ── the call to action ─────────────────────────────────────
        The scripts are deferred, so this text is what the first paint shows.
@@ -157,6 +163,7 @@
        backing store is sized in campaign/main.js, because a drawing buffer
        cannot be set from CSS. -->
   <canvas class="cmp-fx" aria-hidden="true"></canvas>
+  </div>
 </main>
 
 <div data-tw="footer"></div>
@@ -183,6 +190,7 @@
 <script defer src="js/strings.js"></script>
 <script defer src="js/i18n.js"></script>
 <script defer src="js/form.js"></script>
+<script defer src="js/audio.js"></script>
 <script defer src="js/shell.js"></script>
 
 <!-- The mechanic. Its three helpers load BEFORE campaign/main.js on purpose:
@@ -190,7 +198,6 @@
      campaign/main.js's own execution, and its callback uses all three. -->
 <script defer src="campaign/fx.js"></script>
 <script defer src="campaign/animator.js"></script>
-<script defer src="campaign/audio.js"></script>
 <script defer src="campaign/main.js"></script>
 
 </body>

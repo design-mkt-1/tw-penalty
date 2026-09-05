@@ -66,25 +66,31 @@
 
 
 /* ══ the three rows ═══════════════════════════════════════════
-   Portrait: the headline, the pitch, the ball. css/stage.css has already
-   made #tw-main the middle row of the page and a size container; this only
+   Portrait: the headline, the pitch, the ball. css/fold.css has already made
+   #tw-main a definite box -- 92svh minus the header bar, with the footer
+   starting under the fold -- and a size container called tw-main. This only
    arranges what is inside it.
 
-   #tw-main also carries data-state, which campaign/main.js writes: idle,
-   shooting, celebrate, form. The panels and the ball stop taking pointers
-   in the last three -- see the rule under the panels. */
-#tw-main {
+   The arrangement is on .cmp-stage, not on #tw-main, and that is the whole
+   reason the wrapper exists: a container cannot be styled by a query against
+   itself, and the landscape rule below has to ask tw-main how much space
+   there is. #tw-main keeps data-state, which campaign/main.js writes -- idle,
+   shooting, celebrate, form -- and the panels and the ball stop taking
+   pointers in the last three. */
+.cmp-stage {
+  position: relative;
+  height: 100%;
   display: flex;
   flex-direction: column;
   isolation: isolate;
 }
 
 /* Short and wide -- a phone in landscape. The stacked column does not fit, so
-   the goal takes the left and the words and the ball stack on the right. The
-   query is css/stage.css's, written the same way and asked of the same
-   container, so the footer disappears in exactly the same breath. */
-@container tw-stage (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
-  #tw-main {
+   the goal takes the left and the words and the ball stack on the right.
+   Under the fold there is no footer row to drop: it is already below the
+   screen, so this query only restructures the mechanic. */
+@container tw-main (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
+  .cmp-stage {
     display: grid;
     grid-template-columns: 1fr minmax(150px, 36%);
     grid-template-rows: auto 1fr;
@@ -98,10 +104,10 @@
   .cmp-ball-zone { grid-area: ball; }
 
   /* The side column is a third of the width; the portrait padding would eat
-     most of it. The #tw-main prefix is load-bearing: a container query does
+     most of it. The .cmp-stage prefix is load-bearing: a container query does
      not raise specificity, and .cmp-tagline's padding is declared later in
      this same file. tw-penalty shipped exactly this bug for a whole port. */
-  #tw-main .cmp-tagline {
+  .cmp-stage .cmp-tagline {
     padding: clamp(8px, 2cqh, 18px) clamp(10px, 1.6cqw, 22px);
   }
 }
@@ -187,7 +193,7 @@
    picture rather than a gap. Below this the plate is a crop and the goal
    rides high -- see --goal-mid above. A step rather than a ramp: the two are
    different compositions, not one being stretched. */
-@container tw-stage (min-width: 900px) {
+@container tw-main (min-width: 900px) {
   .cmp-pitch { --goal-mid: 46.5%; }
 }
 
@@ -760,7 +766,7 @@
    pitch column instead, where it overlaps the net base rather than falling out
    of the pitch and being clipped by its overflow. Same query as the layout
    switch in css/stage.css. */
-@container tw-stage (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
+@container tw-main (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
   .cmp-msg {
     top: auto;
     bottom: 3%;

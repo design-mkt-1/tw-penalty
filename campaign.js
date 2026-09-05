@@ -150,6 +150,24 @@ window.TW_CAMPAIGN = {
     payments:   ['visa', 'mastercard', 'tether', 'bitcoin']
   },
   header: { show: true, mute: true, lang: true },
+
+  /* ── Sound ────────────────────────────────────────────────────
+     name -> file. js/audio.js pools these, loads nothing until the visitor's
+     first gesture, and js/shell.js wires the speaker in the header; the
+     mechanic only says TW.sound('kick', 0.9).
+
+     confetti and slump are rendered by tools/sfx.py rather than sourced; the
+     other five are clips. Every entry here is played from somewhere in
+     campaign/main.js. */
+  sounds: {
+    kick:     'campaign/assets/audio/kick.mp3',
+    save:     'campaign/assets/audio/save.mp3',
+    net:      'campaign/assets/audio/net.mp3',
+    cheer:    'campaign/assets/audio/cheer.mp3',
+    whistle:  'campaign/assets/audio/whistle.mp3',
+    confetti: 'campaign/assets/audio/confetti.mp3',
+    slump:    'campaign/assets/audio/slump.mp3'
+  },
   footer: { show: true },
 
   /* ── Campaign copy, per locale ────────────────────────────────

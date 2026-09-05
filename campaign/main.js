@@ -12,7 +12,10 @@
      campaign/fx.js        CMPFx        the canvas: ball in flight, its
                                         travelling shadow, the net, confetti
      campaign/animator.js  CMPAnimator  the keeper's ten sprites and the dives
-     campaign/audio.js     CMPAudio     the seven clips and the mute state
+
+   The seven clips used to be a third sibling, campaign/audio.js. They belong
+   to js/audio.js now: named in campaign.js § sounds, played with TW.sound(),
+   and the speaker in the header wired by the shell that draws it.
 
    ── What the shell owns, and this file must not touch ────────
    The header, the footer and the whole registration card. The mechanic
@@ -23,6 +26,7 @@
      TW.t(key)          a translated string
      TW.on('lang')      re-label the six panels when the language changes
      TW.on('formclose') put the pitch back when the card closes
+     TW.sound(name, v)  one of campaign.js § sounds, at volume v
      TW.track(event)    analytics; a no-op unless an id is configured
 
    Do not call showModal(), do not reach into the dialog, do not re-implement
@@ -34,7 +38,7 @@
   'use strict';
 
   /* ── the stage's own geometry ──────────────────────────────
-     Was js/stage.js. Two thirds of that file is css/stage.css now; what is
+     Was js/stage.js. Two thirds of that file is css/fold.css now; what is
      left is the canvas backing store, which cannot be set from CSS, and the
      unit the hand-tuned distances in campaign/fx.js are scaled by. Both
      belong to the mechanic, which is why they live here. */
@@ -190,7 +194,7 @@
 
     stage.dataset.state = 'shooting';
     panel.classList.add('is-armed');
-    CMPAudio.play('kick', 0.9);
+    TW.sound('kick', 0.9);
     TW.track('shot', { attempt: attempt, cell: cell, mult: panel.dataset.mult });
 
     var dive = scores ? CMPAnimator.WRONG_WAY[cell] : CMPAnimator.COVERS[cell];
@@ -212,8 +216,8 @@
       CMPFx.shoot(ball, panel, { duration: 640 })
         .then(function (state) {
           mark(panel);
-          CMPAudio.play('net', 0.8);
-          CMPAudio.play('cheer', 0.7);
+          TW.sound('net', 0.8);
+          TW.sound('cheer', 0.7);
           CMPFx.netBulge(state.x, state.y, state.r * state.s);
           CMPFx.shake(320, 5);
           CMPFx.intoNet(state);
@@ -226,7 +230,7 @@
             CMPFx.burst(centre(panel));
             // With the burst, not with the goal: the 180ms gap is the whole
             // point of the delay, and a pop on the goal would close it.
-            CMPAudio.play('confetti', 0.55);
+            TW.sound('confetti', 0.55);
           }, 180);
           // He is still in the air when the ball crosses the line -- the dive
           // runs to DIVE_DELAY + T.duration = 650ms and the ball arrives at
@@ -235,7 +239,7 @@
             anim.react('beaten', { hold: 1200 });
             // Quiet: this one plays under net, cheer and the confetti, and is
             // meant to be felt rather than picked out. See tools/sfx.py.
-            CMPAudio.play('slump', 0.5);
+            TW.sound('slump', 0.5);
           }, 320);
           say(TW.t('msg.goal'), 1400);
           return wait(1500);
@@ -255,7 +259,7 @@
     CMPFx.shoot(ball, panel, { duration: 620, stopAt: SAVE_AT })
       .then(function (state) {
         mark(panel);
-        CMPAudio.play('save', 0.9);
+        TW.sound('save', 0.9);
         CMPFx.shake(260, 4);
         return CMPFx.deflect(state, SAVE_SIDE[cell]);
       })
@@ -382,27 +386,9 @@
     /* The card closing is the only way back to a live pitch. */
     TW.on('formclose', reset);
 
-    /* The shell renders the mute button because campaign.js sets header.mute,
-       and deliberately does not wire it: the audio belongs to the mechanic,
-       so the handler does too. */
-    var muteBtn = document.querySelector('.tw-mute');
-    if (muteBtn) {
-      muteBtn.setAttribute('aria-pressed', String(CMPAudio.isMuted()));
-      muteBtn.addEventListener('click', function () { CMPAudio.toggle(); });
-    }
-
-    // Audio can only start inside a user gesture.
-    var unlock = function () {
-      CMPAudio.unlock();
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-    };
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
-
     /* The canvas is sized against #tw-main, whose height changes when the two
-       bars do: a soft keyboard, a rotation, or the landscape rule in
-       css/stage.css that drops the footer. */
+       bars do: a soft keyboard, a rotation, or the landscape arrangement in
+       campaign/main.css. */
     window.addEventListener('resize', schedule);
     window.addEventListener('orientationchange', schedule);
     if (window.visualViewport) {

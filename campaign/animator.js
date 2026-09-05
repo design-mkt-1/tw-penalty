@@ -309,6 +309,26 @@
           easing: EASE_IN        // accelerate out of the crouch: explosive
         },
 
+        // The swap. Same shape as the coil -- he has not moved yet -- but
+        // carrying the pose's own scale, because THIS is the frame the sprite
+        // changes on (setPose fires at TIMING.swap above).
+        //
+        // The correction used to arrive with the launch frame at 0.44, a fifth
+        // of the dive later than the picture it corrects: for ~123ms of a
+        // 560ms dive the airborne render -- drawn 16-21% smaller by the
+        // generator, which is what `scale` in POSES exists to undo -- was on
+        // screen at a scale still ramping up from 1. The keeper visibly shrank
+        // the moment he left the ground, which is the bug POSES' own comment
+        // describes and this file was fixing everywhere except here.
+        {
+          transform: 'translateX(-50%) translate(' + lean + '%,' + crouchY + '%) ' +
+                     'rotate(0deg) scale(' + p.scale + ') ' +
+                     'scaleX(' + crouchX + ') scaleY(' + crouchS + ')',
+          transformOrigin: FEET,
+          offset: TIMING.swap,
+          easing: EASE_IN
+        },
+
         // Launch. Most of the travel happens here, stretched thin along the
         // direction of flight, rotating into the dive.
         Object.assign(frame(p, 0.62, 5, 9, 0.94, 1.10, HIPS),
