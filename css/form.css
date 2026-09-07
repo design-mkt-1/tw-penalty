@@ -48,7 +48,7 @@
   display: grid;
   place-items: center;
   padding: 16px 12px;
-  background: rgba(4,4,6,.72);
+  background: var(--scrim);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   opacity: 0;
@@ -81,7 +81,7 @@
   border: 1px solid var(--stroke);
   border-radius: var(--r-xl);
   background: var(--white);
-  box-shadow: 0 12px 12px rgba(25,25,112,.08);
+  box-shadow: var(--shadow-card);
   font-family: var(--font);
   transform: translateY(14px) scale(.98);
   transition: transform 180ms var(--ease-out);
@@ -412,7 +412,7 @@
   border: 0;
   border-radius: 10px;
   background: var(--accent);
-  box-shadow: 0 4px 6px rgba(255,69,0,.19);
+  box-shadow: var(--shadow-cta);
   color: var(--accent-ink);
   font-family: inherit;
   font-size: 15px;

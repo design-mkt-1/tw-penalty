@@ -208,8 +208,25 @@ by regenerating `pitch-spot.webp` byte-identical.
 
 ## Verification
 
-Serve locally on a deliberately chosen port — the reference project lost two
-verification passes to an unrelated API already holding 8000:
+Two of these checks are scripts now, and they gate a pull request instead of
+waiting for a merge:
+
+```
+python -m pip install fonttools brotli
+python tools/tokens.py --check   # no colour literal outside css/tokens.css
+python tools/fonts.py --check    # every rendered character is in a shipped face
+```
+
+Both come from `tw-lp-template`, which was distilled out of this landing.
+`tools/tokens.py` exempts `css/game.css` by name: the mechanic owns the colours
+of its own effects, exactly as a campaign's `campaign/main.css` goes unscanned
+in the template. Everything brand or chrome in `game.css` was routed onto the
+semantic layer on 2026-09-07. `tools/drift.py` and `tools/smoke.py` are
+deliberately absent — the first compares against a lock whose files this repo
+predates, the second names a shell this landing does not have.
+
+Then serve locally on a deliberately chosen port — the reference project lost
+two verification passes to an unrelated API already holding 8000:
 
 ```
 python -m http.server 8099 --bind 127.0.0.1

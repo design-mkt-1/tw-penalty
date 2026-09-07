@@ -9,3 +9,9 @@ __pycache__/
 # reproducible from the prompts in docs/ART.md, so the blobs never need to be.
 raw/
 
+
+# The local state file. It carries the offer terms and the decisions taken
+# with the client; this repository is public. It is deliberately not the same
+# document as docs/NEXT-SESSION.md, which is the version written for a reader
+# outside the project.
+am-nevoie-de-fix-whimsical-charm.md

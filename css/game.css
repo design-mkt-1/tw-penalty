@@ -14,10 +14,10 @@
   justify-content: space-between;
   gap: 10px;
   padding: 0 clamp(12px, 3.6cqw, 30px);
-  background: rgba(11,11,13,.72);
+  background: var(--chrome-bar);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255,255,255,.06);
+  border-bottom: 1px solid var(--chrome-hair);
 }
 
 .hdr__logo img { height: clamp(24px, 3.4cqh, 34px); width: auto; }
@@ -35,8 +35,8 @@
   height: 44px;
   padding: 0 16px;
   border-radius: 22px;
-  border: 1px solid rgba(255,255,255,.14);
-  background: #3a3a3c;
+  border: 1px solid var(--chrome-ctl-brd);
+  background: var(--chrome-ctl);
   color: var(--text);
   /* Roboto, not the display face. The design sets this in Inter Medium and
      SemiBold; the Montserrat cut this project self-hosts starts at 700, so
@@ -69,7 +69,7 @@
 /* The green outline is the design's treatment for this trigger, and the label
    is white against it rather than green -- the outline already says which
    control it is, and a green label on a green outline says it twice. */
-.lang { border-color: var(--accent); color: #fff; }
+.lang { border-color: var(--accent); color: var(--white); }
 .lang__caret { width: 14px; height: 14px; }
 
 /* Press feedback. They are buttons; they were behaving like labels. The logo
@@ -108,9 +108,9 @@
   overflow: hidden;
   list-style: none;
   border-radius: 14px;
-  border: .5px solid #38383a;
-  background: #2c2c2e;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+  border: .5px solid var(--chrome-menu-brd);
+  background: var(--chrome-menu);
+  box-shadow: var(--chrome-shadow);
   transform-origin: top right;
   opacity: 0;
   transform: translateY(-6px) scale(.96);
@@ -141,7 +141,7 @@
   transition: background-color 120ms ease;
 }
 
-.lang-opt + .lang-opt { border-top: .5px solid #38383a; }
+.lang-opt + .lang-opt { border-top: .5px solid var(--chrome-menu-brd); }
 
 /* Flags carry the meaning at a glance; the code and the endonym beside them
    settle the ambiguity a flag alone would leave -- English is not a country.
@@ -153,18 +153,18 @@
   height: 18px;
   border-radius: 2px;
   object-fit: cover;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .22);
+  box-shadow: 0 0 0 1px var(--flag-ring);
 }
 
 /* #9a9aa0 rather than the design's #8e8e93, which is 4.3:1 on this
    background. The same substitution the registration card documents. */
 .lang-opt__code {
   flex: 0 0 32px;
-  color: #9a9aa0;
+  color: var(--chrome-hint);
   font-size: 15px;
 }
 
-.lang-opt__name { flex: 1 1 auto; color: #fff; }
+.lang-opt__name { flex: 1 1 auto; color: var(--white); }
 
 /* A drawn tick rather than U+2713: that codepoint is outside the latin subset
    of the Montserrat cut, so the glyph would arrive from a fallback. */
@@ -180,16 +180,16 @@
   opacity: 0;
 }
 
-.lang-opt[aria-selected="true"] { background: #3a3a3c; }
+.lang-opt[aria-selected="true"] { background: var(--chrome-ctl); }
 .lang-opt[aria-selected="true"] .lang-opt__check { opacity: 1; }
 
 /* Arrow keys move focus through the list, so the focused option needs to be
    visible even when the menu was opened by tapping. */
-.lang-opt:focus { background: rgba(255, 255, 255, .09); outline: none; }
+.lang-opt:focus { background: var(--chrome-hover); outline: none; }
 .lang-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 @media (hover: hover) and (pointer: fine) {
-  .lang-opt:hover { background: rgba(255, 255, 255, .09); }
+  .lang-opt:hover { background: var(--chrome-hover); }
 }
 
 /* Same ring as .panel and .ball further down; the header buttons had none. */

@@ -95,7 +95,7 @@
   /* --navy-500 at 20%, written out rather than mixed: color-mix is newer than
      the oldest iOS this page is expected to run on, and the footer is not
      worth a capability check. */
-  background: rgba(25, 25, 112, .2);
+  background: var(--pay-bg);
 }
 
 /* One rule for the height the badges share, and an explicit width for each of
@@ -142,7 +142,7 @@
     padding: 3.4px 8.2px;
     border-radius: 4px;
     background: var(--white);
-    filter: drop-shadow(0 1.4px .7px rgba(0, 0, 0, .25));
+    filter: var(--plate-shadow);
   }
 
   .ftr__logo img { width: 96px; height: 17px; }

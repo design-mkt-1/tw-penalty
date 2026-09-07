@@ -23,9 +23,10 @@
    the Figma file, so Inter was a deliberate choice we are deliberately not
    carrying.
 
-   Six woff2, one per unicode subset per style, so a Ukrainian page never
-   downloads a face it cannot show and an all-roman page never touches the
-   italic cut. Nothing is fetched from Google at runtime. Licence: OFL.txt.
+   Eight woff2 -- six Roboto, one per unicode subset per style, so a Ukrainian
+   page never downloads a face it cannot show and an all-roman page never
+   touches the italic cut, plus two one-glyph Noto cuts for the hryvnia sign
+   (see below). Nothing is fetched from Google at runtime. Licence: OFL.txt.
 
    Ukrainian coverage is verified, not assumed: і ї є ґ І Ї Є Ґ all live in
    the cyrillic subsets, roman and italic both. Apostrophes do not -- the
@@ -90,6 +91,45 @@
   font-display: swap;
   src: url("../assets/fonts/roboto-cyrillic-italic.woff2") format("woff2");
   unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
+/* ── The hryvnia sign, U+20B4 ──────────────────────────────────
+   Not Roboto, because Roboto has no hryvnia -- not at any weight, width or
+   release, and not in the cyrillic-ext subset whose advertised unicode-range
+   claims to carry it. Figma cannot draw it either, so the artboards show a
+   fallback face and are no reference. Noto Sans Black is Google's companion
+   to Roboto and the closest match: cap height 714/1000 against Roboto's
+   1456/2048.
+
+   This shipped as a live bug once, on nine cards in three languages, and
+   nothing failed loudly because a missing glyph still renders something.
+   `python tools/fonts.py --check` fails instead.
+
+   Declared across the full weight range rather than at 900 alone: a hryvnia
+   in body copy must render, and a face declared only at 900 would not be
+   picked for it -- which is the original bug wearing a different hat. The
+   cost is that the sign is always drawn from a Black cut.
+   ponytail: always-Black hryvnia; cut a Regular subset if it ever reads wrong
+   next to small text. */
+
+@font-face {
+  font-family: "Roboto";
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 75% 100%;
+  font-display: swap;
+  src: url("../assets/fonts/noto-var-black-upright-hryvnia.woff2") format("woff2");
+  unicode-range: U+20B4;
+}
+
+@font-face {
+  font-family: "Roboto";
+  font-style: italic;
+  font-weight: 100 900;
+  font-stretch: 75% 100%;
+  font-display: swap;
+  src: url("../assets/fonts/noto-var-black-italic-hryvnia.woff2") format("woff2");
+  unicode-range: U+20B4;
 }
 
 :root {
@@ -170,6 +210,27 @@
   --footer-fg: #9ca3af;
   --footer-brd:#22223b;
 
+  /* Header chrome, Figma 1:3797 "Header Mobile". Dark iOS-style controls that
+     belong to the bar, not to the palette -- but they are colours, and any
+     colour written outside this file is how the four oranges happened. They
+     live here so tools/tokens.py has nothing to find in css/shell.css.
+     --chrome-hint is #9a9aa0 rather than the design's #8e8e93, which is
+     4.3:1 on --chrome-menu. The same substitution the card documents. */
+  --chrome-bar:      rgba(11, 11, 13, .72);
+  --chrome-hair:     rgba(255, 255, 255, .06);
+  --chrome-ctl:      #3a3a3c;
+  --chrome-ctl-brd:  rgba(255, 255, 255, .14);
+  --chrome-menu:     #2c2c2e;
+  --chrome-menu-brd: #38383a;
+  --chrome-hint:     #9a9aa0;
+  --chrome-hover:    rgba(255, 255, 255, .09);
+  --chrome-shadow:   0 8px 24px rgba(0, 0, 0, .4);
+  --flag-ring:       rgba(255, 255, 255, .22);
+  --pay-bg:          rgba(25, 25, 112, .2);   /* --navy-500 at 20%, written out:
+                                                 color-mix is newer than the
+                                                 oldest iOS this runs on. */
+  --plate-shadow:    drop-shadow(0 1.4px .7px rgba(0, 0, 0, .25));
+
   /* ── Semantic ─────────────────────────────────────────────────
      What the rest of the stylesheets are allowed to ask for. Nothing outside
      this file reaches for a ramp step by number; when it did, the colour
@@ -216,8 +277,9 @@
   --font-stretch-tight: 75%;
 
   /* ── Motion ─────────────────────────────────────── */
-  /* The curve already used by js/animator.js and the card in form.css,
-     given a name so new motion extends one system rather than forking. */
+  /* The one curve, used by the header controls, the language menu and the
+     dialog. New motion extends this set rather than forking a curve of its
+     own, which is the only reason it has a name. */
   --ease-out: cubic-bezier(.2, .9, .3, 1);
 
   /* ── Radii / elevation ────────────────────────────────────── */
@@ -226,6 +288,19 @@
   --r-lg: 16px;
   --r-xl: 24px;
   --r-pill: 999px;
+
+  /* The dialog's own three. Named here rather than written into css/form.css
+     because a shadow is a colour: the last two landings each invented their
+     own AA-safe orange the same way, by typing one into the file that needed
+     it. All three are ramp values at an alpha, not new colours.
+
+     --scrim is deliberately not aliased to --chrome-bar, which happens to
+     carry the same .72 alpha within three points of this colour. The header
+     bar and the dialog scrim are two surfaces; naming one after the other is
+     how a value stops tracking the thing it belongs to. */
+  --scrim:       rgba(4, 4, 18, .72);       /* --navy-950 at 72% */
+  --shadow-card: 0 12px 12px rgba(25, 25, 112, .08);  /* --navy-500 at 8% */
+  --shadow-cta:  0 4px 6px rgba(255, 69, 0, .19);     /* --orange-500 at 19% */
 
   --glow-accent: 0 0 24px rgba(255,69,0,.45);
   --glow-second: 0 0 28px rgba(25,25,112,.55);

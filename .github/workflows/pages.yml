@@ -8,6 +8,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -15,13 +16,54 @@ permissions:
   pages: write
   id-token: write
 
-# Let a running deploy finish rather than cancelling it mid-publish.
+# Let a running deploy finish rather than cancelling it mid-publish. Keyed by
+# ref so a pull request's guard run cannot cancel main's deploy.
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  # The guards run BEFORE the merge, not inside build. Until 2026-09-07 this
+  # workflow fired on push to main only, so anything a guard could have caught
+  # was already on main by the time it ran — which is exactly how the hryvnia
+  # bug reached production at a sibling repo. tw-lp-template gates its merges
+  # for that reason and this repo now does the same.
+  #
+  # tools/drift.py and tools/smoke.py are deliberately absent. drift compares
+  # this repo against tw-lp-template's SHARED.lock, and seven of those files
+  # here are older, divergent implementations of the same contract — it would
+  # be red on every run from the first day, and a guard that is always red is
+  # a guard nobody reads. smoke.py names the template's shell (.tw-hdr,
+  # #tw-signup, TW.openForm) which this landing does not have. Both belong to
+  # the shell adoption, not to this step.
+  guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install the guards' dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install fonttools brotli
+
+      # Colours live in css/tokens.css and nowhere else. css/game.css is the
+      # mechanic's own layer and is exempt by name; the reasoning is in the
+      # head of tools/tokens.py.
+      - name: tokens — no colour literal outside tokens.css
+        run: python tools/tokens.py --check
+
+      # A missing glyph still renders something, from a face nobody chose.
+      # This is the check that closes the hryvnia class of bug.
+      - name: fonts — every rendered character exists in a shipped face
+        run: python tools/fonts.py --check
+
   build:
+    needs: guards
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
