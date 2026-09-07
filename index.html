@@ -6,11 +6,12 @@
 <meta name="theme-color" content="#040412">
 <title data-i18n="title">Top Win — Заб’єш пенальті та виграєш!</title>
 
-<!-- The logo doubles as the icon, so nothing new ships for it. Without this
-     line a browser asks for /favicon.ico, which this repo does not have and
-     the deploy allowlist would not publish anyway: a 404 in the console of
-     every visit, inherited from the landing this one was ported from. -->
-<link rel="icon" href="assets/img/logo-topwin.svg" type="image/svg+xml">
+<!-- The brand's square mark, the same file on every Top Win landing. Not
+     logo-topwin.svg, which is 247x44 of horizontal type and a smear at 16px.
+     Without this line a browser asks for /favicon.ico, which this repo does
+     not have and the deploy allowlist would not publish anyway: a 404 in the
+     console of every visit, inherited from the landing this was ported from. -->
+<link rel="icon" href="assets/img/favicon_topwin.svg" type="image/svg+xml">
 
 <!-- The LCP image and the faces the first paint needs are all discovered late:
      the plate only after css/game.css parses, a font only after that
