@@ -14,7 +14,7 @@
 <link rel="icon" href="assets/img/favicon_topwin.svg" type="image/svg+xml">
 
 <!-- The LCP image and the faces the first paint needs are all discovered late:
-     the plate only after css/game.css parses, a font only after that
+     the plate only after campaign/main.css parses, a font only after that
      stylesheet is applied to text. Named here, they start with the
      stylesheets instead.
 
@@ -30,320 +30,90 @@
 <link rel="preload" as="font" type="font/woff2" href="assets/fonts/roboto-cyrillic.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="assets/fonts/roboto-latin.woff2" crossorigin>
 
+<!-- Reset, tokens, the shell, the card, the page shape, then the mechanic.
+     The first five are tw-lp-template's and are never edited here; campaign/main.css
+     campaign/main.css is this campaign's and comes last so it wins where the
+     two ever meet. -->
 <link rel="stylesheet" href="css/reset.css">
 <link rel="stylesheet" href="css/tokens.css">
-<link rel="stylesheet" href="css/stage.css">
-<link rel="stylesheet" href="css/game.css">
+<link rel="stylesheet" href="css/shell.css">
 <link rel="stylesheet" href="css/form.css">
-<link rel="stylesheet" href="css/footer.css">
+<link rel="stylesheet" href="css/stage.css">
+<link rel="stylesheet" href="campaign/main.css">
 </head>
 <body>
 
-<div id="viewport">
-  <div id="stage" data-state="idle">
+<!-- js/shell.js replaces these two markers with the header and the footer
+     every Top Win landing shares, and appends the registration <dialog> to
+     <body>. css/stage.css makes the three of them a column that never
+     scrolls, with #tw-main taking whatever the two bars leave. -->
+<div data-tw="header"></div>
 
-    <!-- ── header ─────────────────────────────────────────────── -->
-    <header class="hdr">
-      <!-- No href on purpose: HOME_URL in js/main.js puts one here when the
-           client supplies it. aria-label is inert until then and live after. -->
-      <a class="hdr__logo" aria-label="Top Win">
-        <img src="assets/img/logo-topwin.svg" alt="Top Win" width="120" height="21">
-      </a>
-      <div class="hdr__right">
-        <button class="mute" type="button" aria-pressed="false"
-                data-i18n-attr="aria-label:hdr.sound">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path class="mute__spk" d="M4 9v6h4l5 4V5L8 9H4z"/>
-            <path class="mute__on" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>
-            <path class="mute__off" d="M16.5 9.5l5 5m0-5l-5 5"/>
-          </svg>
-        </button>
-        <div class="lang-wrap">
-          <button class="lang" type="button" id="tw-lang-btn"
-                  aria-haspopup="listbox" aria-expanded="false"
-                  data-i18n-attr="aria-label:hdr.lang">
-            <svg class="lang__globe" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <circle cx="12" cy="12" r="9"/>
-              <path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/>
-            </svg>
-            <span class="lang__code">UA</span>
-            <!-- Points down when the menu is shut. It was drawn pointing up, and the
-                 180deg rotation on [aria-expanded] then turned it down on open --
-                 the caret said the opposite of the state in both. -->
-            <svg class="lang__caret" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg>
-          </button>
-          <ul class="lang-menu" role="listbox" aria-labelledby="tw-lang-btn" hidden>
-            <li class="lang-opt" role="option" data-lang="ua" tabindex="-1" aria-selected="true">
-              <img class="lang-opt__flag" src="assets/img/icons/flag-ua.svg" alt="" width="24" height="18">
-              <span class="lang-opt__code">UA</span>
-              <span class="lang-opt__name"></span>
-              <svg class="lang-opt__check" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
-            </li>
-            <li class="lang-opt" role="option" data-lang="ru" tabindex="-1">
-              <img class="lang-opt__flag" src="assets/img/icons/flag-ru.svg" alt="" width="24" height="18">
-              <span class="lang-opt__code">RU</span>
-              <span class="lang-opt__name"></span>
-              <svg class="lang-opt__check" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
-            </li>
-            <li class="lang-opt" role="option" data-lang="en" tabindex="-1">
-              <img class="lang-opt__flag" src="assets/img/icons/flag-gb.svg" alt="" width="24" height="18">
-              <span class="lang-opt__code">EN</span>
-              <span class="lang-opt__name"></span>
-              <svg class="lang-opt__check" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </header>
+<main id="tw-main">
 
-    <!-- ── call to action ─────────────────────────────────────── -->
-    <div class="tagline">
-      <!-- The scripts are deferred, so this text is what the first paint
-           shows. It has to be the default language's, or the tagline flashes
-           English on a Ukrainian page. -->
-      <h1 class="tagline__text" data-i18n="tagline">Заб’єш пенальті<br>та виграєш!</h1>
-    </div>
-
-    <!-- ── pitch ──────────────────────────────────────────────── -->
-    <div class="pitch">
-      <!-- The goal is painted into the stadium plate, so this element draws
-           nothing: it is the geometry the panels, the keeper and the effects
-           are hung on, sized and placed to land exactly on the painted posts.
-           See the numbers in css/game.css. -->
-      <div class="goal">
-        <div class="panels" role="group" data-i18n-attr="aria-label:goal.aim">
-          <button class="panel" type="button" data-cell="tl" data-mult="12"><span>×12</span></button>
-          <button class="panel" type="button" data-cell="tc" data-mult="3"><span>×3</span></button>
-          <button class="panel" type="button" data-cell="tr" data-mult="12"><span>×12</span></button>
-          <button class="panel" type="button" data-cell="bl" data-mult="2"><span>×2</span></button>
-          <button class="panel" type="button" data-cell="bc" data-mult="3"><span>×3</span></button>
-          <button class="panel" type="button" data-cell="br" data-mult="2"><span>×2</span></button>
-        </div>
-
-        <div class="dust" aria-hidden="true"></div>
-        <div class="keeper-shadow" aria-hidden="true"></div>
-        <div class="keeper" data-pose="idle" role="presentation"></div>
-        <div class="hit" aria-hidden="true"></div>
-      </div>
-
-      <!-- ── transient message ────────────────────────────────── -->
-      <!-- Inside the pitch, not the stage: it is placed against the goal
-           line, and only in here does --goal-base mean anything. -->
-      <p class="msg" role="status" aria-live="polite" hidden></p>
-    </div>
-
-    <!-- ── ball ───────────────────────────────────────────────── -->
-    <div class="ball-zone">
-      <button class="ball" type="button" data-i18n-attr="aria-label:ball.shoot"></button>
-    </div>
-
-    <!-- ── footer ─────────────────────────────────────────────── -->
-    <!-- Figma 19:3717 mobile, 19:3624 desktop. Two arrangements, not one
-         scaled: the mobile node stacks the payments over a rule over the
-         copyright, the desktop node puts the logo and the copyright on the
-         left and the payments on the right. The second is a third shorter,
-         which on a page that cannot scroll is height the pitch keeps. -->
-    <footer class="ftr">
-      <a class="ftr__logo" aria-label="Top Win">
-        <img src="assets/img/logo-topwin.svg" alt="" width="96" height="17">
-      </a>
-
-      <div class="ftr__pay">
-        <p class="ftr__label" data-i18n="footer.pay">Способи оплати</p>
-        <!-- Sized one by one: three aspect ratios between four marks, so a
-             single shared rule stretches the round ones. See
-             assets/img/icons/PAYMENTS-NOTICE.txt. -->
-        <ul class="ftr__marks">
-          <li class="ftr__badge"><img class="ftr__mark ftr__mark--visa" src="assets/img/icons/pay-visa.svg" alt="Visa" width="74" height="24"></li>
-          <li class="ftr__badge"><img class="ftr__mark ftr__mark--mc" src="assets/img/icons/pay-mastercard.svg" alt="Mastercard" width="39" height="24"></li>
-          <li class="ftr__badge"><img class="ftr__mark" src="assets/img/icons/pay-tether.svg" alt="Tether" width="24" height="24"></li>
-          <li class="ftr__badge"><img class="ftr__mark" src="assets/img/icons/pay-bitcoin.svg" alt="Bitcoin" width="24" height="24"></li>
-        </ul>
-      </div>
-
-      <p class="ftr__copy" data-i18n="footer.copy">© 2026 Усі права захищені</p>
-    </footer>
-
-    <!-- ── ball in flight, shadows, net and confetti ──────────── -->
-    <canvas class="fx" aria-hidden="true"></canvas>
-
-    <!-- ── registration overlay ───────────────────────────────── -->
-    <!-- Figma mAJyDSaXdr9GO72b7FGvI8 · page 19:2893. Default 19:4559 mobile /
-         19:4675 desktop, error 19:4596, success 19:4635, phone tab 19:4431,
-         registration complete 19:4827. -->
-    <div class="sheet" hidden aria-hidden="true">
-      <form class="card" role="dialog" aria-modal="true" aria-labelledby="promo-title"
-            tabindex="-1" novalidate>
-
-        <!-- The Figma node has none. It ships anyway: Escape is not
-             discoverable on touch and there is no key for it on a phone, the
-             card comes within 12px of the viewport at 320 so there is almost
-             no scrim left to tap, and until this button existed a visitor who
-             opened the card on a phone could only leave it by registering.
-             data-action="dismiss", not "close": that one is the GO TO WEBSITE
-             button below, which closes AND navigates. -->
-        <button class="close" type="button" data-action="dismiss"
-                data-i18n-attr="aria-label:dialog.close" aria-label="Close">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" aria-hidden="true" focusable="false">
-            <path d="M6 6l12 12M18 6L6 18"/>
-          </svg>
-        </button>
-
-        <!-- Outside the steps: the design keeps the whole promo block on the
-             complete screen (19:4830) and replaces only what is under it. -->
-        <header class="promo">
-          <img class="promo__logo" src="assets/img/logo-topwin.svg" alt="Top Win" width="101" height="18">
-          <div class="promo__head">
-            <h2 class="promo__title" id="promo-title" data-i18n="promo.title">Welcome sports bonus</h2>
-            <div class="promo__offer">
-              <p class="promo__pct" data-i18n="promo.pct">225%</p>
-              <p class="promo__sub" data-i18n="promo.amount">up to 15000 UAH</p>
-            </div>
-          </div>
-        </header>
-
-        <div class="card__step" data-step="form">
-          <div class="tabs" role="tablist" data-i18n-attr="aria-label:tabs.label">
-            <button class="tab is-active" type="button" role="tab" id="tw-tab-email"
-                    data-tab="email" aria-controls="tw-panel-email"
-                    aria-selected="true" data-i18n="tab.email">EMAIL</button>
-            <button class="tab" type="button" role="tab" id="tw-tab-phone"
-                    data-tab="phone" aria-controls="tw-panel-phone"
-                    aria-selected="false" data-i18n="tab.phone">PHONE</button>
-          </div>
-
-          <div class="fields">
-            <!-- The shell is the label, not a div around one. A placeholder is
-                 not an accessible name and it leaves with the first keystroke,
-                 and a div shell means only the 17px of the input itself is a
-                 tap target while 48px of it looks like one. As a label both
-                 are answered at once: the whole box names the field and
-                 focuses it. The text is for screen readers only -- the design
-                 puts the word inside the box, and that is the placeholder. -->
-            <div class="field" data-for="email" role="tabpanel"
-                 id="tw-panel-email" aria-labelledby="tw-tab-email">
-              <label class="input" for="tw-email">
-                <span class="sr-only" data-i18n="field.email">Email</span>
-                <input id="tw-email" type="email" inputmode="email" autocomplete="email"
-                       data-i18n-attr="placeholder:field.email" aria-describedby="tw-email-err">
-              </label>
-              <p class="err" id="tw-email-err" data-i18n="err.email" hidden>Invalid email address</p>
-            </div>
-
-            <div class="field" data-for="phone" role="tabpanel"
-                 id="tw-panel-phone" aria-labelledby="tw-tab-phone" hidden>
-              <!-- +380 is fixed text, not a country picker: the offer is
-                   Ukraine-only and the design writes the prefix into the
-                   field. The flag is the flag-icons SVG the language menu
-                   already carries; the design draws the emoji, which renders
-                   as the letters UA on Windows. -->
-              <label class="input input--phone" for="tw-phone">
-                <span class="sr-only" data-i18n="field.phoneLabel">Phone number</span>
-                <img class="input__flag" src="assets/img/icons/flag-ua.svg" alt="" width="24" height="18">
-                <span class="input__prefix">+380</span>
-                <input id="tw-phone" type="tel" inputmode="tel" autocomplete="tel"
-                       data-i18n-attr="placeholder:field.phone" aria-describedby="tw-phone-err">
-              </label>
-              <p class="err" id="tw-phone-err" data-i18n="err.phone" hidden>Invalid phone number</p>
-            </div>
-
-            <div class="field" data-for="password">
-              <label class="label" for="tw-pass" data-i18n="field.password">Password</label>
-              <div class="input">
-                <input id="tw-pass" type="password" autocomplete="new-password"
-                       data-i18n-attr="placeholder:field.passwordHint" aria-describedby="tw-pass-err">
-                <button class="eye" type="button" aria-pressed="false"
-                        data-i18n-attr="aria-label:field.reveal">
-                  <img src="assets/img/icons/eye.svg" alt="" width="20" height="20">
-                </button>
-                <span class="ok" aria-hidden="true">
-                  <img src="assets/img/icons/check.svg" alt="" width="10" height="10">
-                </span>
-              </div>
-              <p class="err" id="tw-pass-err" data-i18n="err.password" hidden>Password is too short</p>
-            </div>
-          </div>
-
-          <!-- The sentence is deliberately not a <label for>: it carries two
-               links, and a click on either would toggle the box on its way to
-               the anchor. The box names itself and points at the sentence. -->
-          <div class="agree">
-            <input class="agree__box" id="tw-agree" type="checkbox" checked
-                   aria-describedby="tw-agree-text"
-                   data-i18n-attr="aria-label:agree.aria">
-            <p class="agree__text" id="tw-agree-text"><label for="tw-agree"
-              data-i18n="agree.pre">I am 18 years old and I accept the </label><a
-              data-i18n="agree.terms">Terms of Use</a><span
-              data-i18n="agree.mid"> and the </span><a
-              data-i18n="agree.privacy">Privacy Policy</a><span
-              data-i18n="agree.post">.</span></p>
-          </div>
-
-          <div class="actions">
-            <button class="cta" type="submit" data-i18n="cta.register">REGISTER</button>
-            <!-- No href on purpose: LOGIN_URL in js/main.js. See the logo. -->
-            <p class="foot"><span data-i18n="foot.have">Already have an account?</span> <a data-i18n="foot.login">Log in</a></p>
-          </div>
-        </div>
-
-        <div class="card__step" data-step="done" hidden>
-          <hr class="rule">
-          <h2 class="done__title" id="done-title" data-i18n="done.title">Registration successful!</h2>
-          <dl class="creds">
-            <div class="cred">
-              <dt data-i18n="done.login">Login:</dt>
-              <dd class="done__id"></dd>
-              <button class="copy" type="button" data-copy=".done__id"
-                      data-i18n-attr="aria-label:done.copy">
-                <!-- 19:4845: two 10.8x12.6 rounded rectangles at 1.2 stroke,
-                     the front one offset 4.5 and filled so the back reads as
-                     a second sheet. Shifted half a stroke off the edges so
-                     neither is clipped by the 18px box. -->
-                <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
-                  <rect x="5.1" y="0.6" width="10.8" height="12.6" rx="1.5"
-                        stroke="currentColor" stroke-width="1.2"/>
-                  <rect x="0.6" y="5.1" width="10.8" height="12.6" rx="1.5"
-                        fill="#fff" stroke="currentColor" stroke-width="1.2"/>
-                </svg>
-              </button>
-            </div>
-            <div class="cred">
-              <dt data-i18n="done.password">Password:</dt>
-              <dd class="done__pw"></dd>
-              <button class="copy" type="button" data-copy=".done__pw"
-                      data-i18n-attr="aria-label:done.copy">
-                <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" focusable="false">
-                  <rect x="5.1" y="0.6" width="10.8" height="12.6" rx="1.5"
-                        stroke="currentColor" stroke-width="1.2"/>
-                  <rect x="0.6" y="5.1" width="10.8" height="12.6" rx="1.5"
-                        fill="#fff" stroke="currentColor" stroke-width="1.2"/>
-                </svg>
-              </button>
-            </div>
-          </dl>
-          <div class="actions">
-            <button class="cta" type="button" data-action="close" data-i18n="cta.website">GO TO WEBSITE</button>
-            <p class="done__note" data-i18n="done.note">Save your login details</p>
-          </div>
-        </div>
-
-      </form>
-    </div>
-
+  <!-- ── call to action ─────────────────────────────────────── -->
+  <div class="tagline">
+    <!-- The scripts are deferred, so this text is what the first paint
+         shows. It has to be the default language's, or the tagline flashes
+         English on a Ukrainian page. -->
+    <h1 class="tagline__text" data-i18n="tagline">Заб’єш пенальті<br>та виграєш!</h1>
   </div>
-</div>
 
-<!-- defer, not sync: 80 kB of parser-blocking script for a page whose first
-     paint needs none of it. defer keeps this execution order and still runs
-     everything before DOMContentLoaded, which is the event main.js waits on. -->
-<script defer src="js/stage.js"></script>
-<script defer src="js/audio.js"></script>
-<script defer src="js/animator.js"></script>
-<script defer src="js/fx.js"></script>
+  <!-- ── pitch ──────────────────────────────────────────────── -->
+  <div class="pitch">
+    <!-- The goal is painted into the stadium plate, so this element draws
+         nothing: it is the geometry the panels, the keeper and the effects
+         are hung on, sized and placed to land exactly on the painted posts.
+         See the numbers in campaign/main.css. -->
+    <div class="goal">
+      <div class="panels" role="group" data-i18n-attr="aria-label:goal.aim">
+        <button class="panel" type="button" data-cell="tl" data-mult="12"><span>×12</span></button>
+        <button class="panel" type="button" data-cell="tc" data-mult="3"><span>×3</span></button>
+        <button class="panel" type="button" data-cell="tr" data-mult="12"><span>×12</span></button>
+        <button class="panel" type="button" data-cell="bl" data-mult="2"><span>×2</span></button>
+        <button class="panel" type="button" data-cell="bc" data-mult="3"><span>×3</span></button>
+        <button class="panel" type="button" data-cell="br" data-mult="2"><span>×2</span></button>
+      </div>
+
+      <div class="dust" aria-hidden="true"></div>
+      <div class="keeper-shadow" aria-hidden="true"></div>
+      <div class="keeper" data-pose="idle" role="presentation"></div>
+      <div class="hit" aria-hidden="true"></div>
+    </div>
+
+    <!-- ── transient message ────────────────────────────────── -->
+    <!-- Inside the pitch, not the stage: it is placed against the goal
+         line, and only in here does --goal-base mean anything. -->
+    <p class="msg" role="status" aria-live="polite" hidden></p>
+  </div>
+
+  <!-- ── ball ───────────────────────────────────────────────── -->
+  <div class="ball-zone">
+    <button class="ball" type="button" data-i18n-attr="aria-label:ball.shoot"></button>
+  </div>
+
+  <!-- The ball in flight, its shadow, the net and the confetti. Inside
+       #tw-main because css/stage.css gives the mechanic the whole box and
+       anything hung off <body> instead would take a flex row of its own. -->
+  <canvas class="fx" aria-hidden="true"></canvas>
+
+</main>
+
+<div data-tw="footer"></div>
+
+<!-- defer, and the order IS the dependency graph: no bundler, no imports.
+     campaign.js first because everything reads it; then the shell's five;
+     then this campaign's mechanic, which reaches the card through the one
+     seam it is allowed, TW.openForm(). -->
+<script defer src="campaign.js"></script>
+<script defer src="js/strings.js"></script>
 <script defer src="js/i18n.js"></script>
-<script defer src="js/game.js"></script>
 <script defer src="js/form.js"></script>
-<script defer src="js/main.js"></script>
+<script defer src="js/audio.js"></script>
+<script defer src="js/shell.js"></script>
+<script defer src="campaign/stage.js"></script>
+<script defer src="campaign/animator.js"></script>
+<script defer src="campaign/fx.js"></script>
+<script defer src="campaign/main.js"></script>
 </body>
 </html>

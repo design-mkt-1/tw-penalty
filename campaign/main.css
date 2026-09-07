@@ -1,204 +1,68 @@
-/* ══ header ═══════════════════════════════════════════════════ */
+/* Top Win penalty — the mechanic.
 
-.hdr {
-  position: relative;
-  /* Above .fx (45), below .sheet (50). This element is a stacking context, so
-     .lang-menu's own z-index: 60 is capped at whatever the header sits at —
-     at 40 the open menu painted underneath the effects canvas. Confetti now
-     passes behind the header bar instead, which costs nothing: it bursts from
-     the goal and falls, and never reaches the top 59px. */
-  z-index: 46;
-  flex: 0 0 clamp(52px, 7cqh, 74px);
+   The header used to be the first 200 lines of this file: the bar, the logo,
+   the mute button and the whole language listbox, welded into the game's own
+   stylesheet and impossible to lift out. css/shell.css owns them now, in
+   every Top Win landing at once, and this file is the pitch, the goal, the
+   keeper, the ball and the effects.
+
+   #tw-main is the box css/stage.css hands the mechanic; cqh and cqw inside
+   it mean "of the space the mechanic got", and the `tw-stage` container is
+   the page net of the safe area.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ══ the mechanic's own box ═══════════════════════════════════
+   css/stage.css hands #tw-main the space the two bars leave, makes it a size
+   container and clips it. What is INSIDE it is this campaign's, and this is
+   that layout: a column of tagline, pitch and ball, with the pitch taking
+   the remainder.
+
+   These four declarations used to live in this repo's own css/stage.css, on
+   an element called #stage that wrapped the header and the footer as well.
+   The shell owns the bars now, so the box the mechanic lays out is #tw-main
+   and nothing else. */
+#tw-main {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0 clamp(12px, 3.6cqw, 30px);
-  background: var(--chrome-bar);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--chrome-hair);
+  flex-direction: column;
+  background: var(--surface);
+  /* Its own stacking context, so the keeper, the panels and the canvas cannot
+     be reordered against anything the shell draws. */
+  isolation: isolate;
 }
 
-.hdr__logo img { height: clamp(24px, 3.4cqh, 34px); width: auto; }
+/* ══ short and wide ═══════════════════════════════════════════
+   A phone in landscape: the portrait column does not fit, so the goal takes
+   the left and the words and the ball stack on the right. Below this height
+   a stacked layout leaves the goal a few dozen pixels.
 
-.hdr__right { display: flex; align-items: center; gap: 8px; }
+   Asked of `tw-stage`, the container css/stage.css declares on <body>, and
+   with the same two clauses that file uses to drop the footer — written
+   there once, so the two cannot drift apart. The header is not in this grid
+   any more: it is outside #tw-main entirely.
 
-/* The header controls, from Figma 1:3797 "Header Mobile". They were 32px
-   pills with a 13px label; the design has them at 44 with a 16px one, which
-   is also the tap target size iOS asks for and the old ones missed by 12px. */
-.mute,
-.lang {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 22px;
-  border: 1px solid var(--chrome-ctl-brd);
-  background: var(--chrome-ctl);
-  color: var(--text);
-  /* Roboto, not the display face. The design sets this in Inter Medium and
-     SemiBold; the Montserrat cut this project self-hosts starts at 700, so
-     every weight below that rendered as 700 and the header read as shouting.
-     Roboto is already hosted at 400-900 for the registration card. */
-  font-family: "Roboto", system-ui, -apple-system, sans-serif;
-  font-weight: 600;
-  font-size: 16px;
-  transition: scale 140ms var(--ease-out);
+   The #tw-main prefix on the .tagline rule is load-bearing. A container
+   query does not raise specificity, and .tagline's padding is declared later
+   in this same file: at a flat 0-1-0 the later rule simply wins and this one
+   does nothing. That bug shipped here for a whole port. */
+@container tw-stage (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
+  #tw-main {
+    display: grid;
+    grid-template-columns: 1fr minmax(150px, 36%);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "pitch   tagline"
+      "pitch   ball";
+  }
+
+  .pitch     { grid-area: pitch; }
+  .tagline   { grid-area: tagline; align-self: end; }
+  .ball-zone { grid-area: ball; }
+
+  /* The side column is a third of the width; the portrait padding would eat
+     most of it. */
+  #tw-main .tagline { padding: clamp(8px, 2cqh, 18px) clamp(10px, 1.6cqw, 22px); }
 }
 
-.mute { width: 44px; padding: 0; justify-content: center; }
-
-.mute svg,
-.lang svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.mute .mute__spk { fill: currentColor; stroke: none; }
-.mute .mute__off { display: none; }
-.mute[aria-pressed="true"] .mute__on { display: none; }
-.mute[aria-pressed="true"] .mute__off { display: block; }
-
-/* The green outline is the design's treatment for this trigger, and the label
-   is white against it rather than green -- the outline already says which
-   control it is, and a green label on a green outline says it twice. */
-.lang { border-color: var(--accent); color: var(--white); }
-.lang__caret { width: 14px; height: 14px; }
-
-/* Press feedback. They are buttons; they were behaving like labels. The logo
-   is qualified on [href] because it only becomes one when HOME_URL is filled
-   in js/main.js -- a mark that shrinks under the thumb and then does nothing
-   reads as a broken control rather than a logo. */
-.mute:active,
-.lang:active,
-.hdr__logo[href]:active { scale: .95; }
-
-/* == language menu ============================================ */
-
-.lang-wrap { position: relative; }
-
-.lang__caret { transition: transform 180ms var(--ease-out); }
-.lang[aria-expanded="true"] .lang__caret { transform: rotate(180deg); }
-
-/* Grows out of the button it hangs from, so it reads as coming from there
-   rather than appearing over the header. reset.css forces [hidden] to
-   display:none !important, so display cannot be transitioned -- the open
-   state is a class, and js/i18n.js unhides one frame ahead of it. Same
-   two-step the registration card uses.
-
-   The sizes are the design's: 286 wide, 14 radius, a hairline #38383a border
-   and a drop shadow, rather than the 136px frosted panel this used to be.
-   Rows run flush to the edges and are divided by hairlines, so there is no
-   padding here and no radius on a row. */
-.lang-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 60;
-  width: 286px;
-  max-width: calc(100cqw - 24px);
-  padding: 0;
-  overflow: hidden;
-  list-style: none;
-  border-radius: 14px;
-  border: .5px solid var(--chrome-menu-brd);
-  background: var(--chrome-menu);
-  box-shadow: var(--chrome-shadow);
-  transform-origin: top right;
-  opacity: 0;
-  transform: translateY(-6px) scale(.96);
-  pointer-events: none;
-  transition: opacity 120ms var(--ease-out), transform 120ms var(--ease-out);
-}
-
-/* Entry is slower than exit: arriving is worth watching, leaving is not. */
-.lang-menu.is-open {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-  transition-duration: 180ms;
-}
-
-.lang-opt {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 48px;
-  padding: 0 16px;
-  color: var(--text);
-  font-family: "Roboto", system-ui, -apple-system, sans-serif;
-  font-size: 16px;
-  font-weight: 500;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background-color 120ms ease;
-}
-
-.lang-opt + .lang-opt { border-top: .5px solid var(--chrome-menu-brd); }
-
-/* Flags carry the meaning at a glance; the code and the endonym beside them
-   settle the ambiguity a flag alone would leave -- English is not a country.
-   The design uses flag emoji, which draw differently on every platform; these
-   are the MIT SVGs in assets/img/icons/. GB is the convention for EN. */
-.lang-opt__flag {
-  flex: 0 0 auto;
-  width: 24px;
-  height: 18px;
-  border-radius: 2px;
-  object-fit: cover;
-  box-shadow: 0 0 0 1px var(--flag-ring);
-}
-
-/* #9a9aa0 rather than the design's #8e8e93, which is 4.3:1 on this
-   background. The same substitution the registration card documents. */
-.lang-opt__code {
-  flex: 0 0 32px;
-  color: var(--chrome-hint);
-  font-size: 15px;
-}
-
-.lang-opt__name { flex: 1 1 auto; color: var(--white); }
-
-/* A drawn tick rather than U+2713: that codepoint is outside the latin subset
-   of the Montserrat cut, so the glyph would arrive from a fallback. */
-.lang-opt__check {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0;
-}
-
-.lang-opt[aria-selected="true"] { background: var(--chrome-ctl); }
-.lang-opt[aria-selected="true"] .lang-opt__check { opacity: 1; }
-
-/* Arrow keys move focus through the list, so the focused option needs to be
-   visible even when the menu was opened by tapping. */
-.lang-opt:focus { background: var(--chrome-hover); outline: none; }
-.lang-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-
-@media (hover: hover) and (pointer: fine) {
-  .lang-opt:hover { background: var(--chrome-hover); }
-}
-
-/* Same ring as .panel and .ball further down; the header buttons had none. */
-.hdr__logo:focus-visible,
-.mute:focus-visible,
-.lang:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 
 /* == pitch ==================================================== */
 
@@ -225,7 +89,7 @@
   /* The whole scene shakes together now -- plate, goal and keeper -- because
      the goal is part of the plate. It used to be only the drawn markings that
      moved, at 1.4x, which was a parallax between two things; there is one
-     thing now. js/fx.js writes the two variables. */
+     thing now. campaign/fx.js writes the two variables. */
   translate: var(--shake-x, 0px) var(--shake-y, 0px);
 
   /* One goal width, still the unit the whole composition is measured in --
@@ -280,7 +144,7 @@
    picture rather than a gap. Below this the plate is a crop and the goal
    rides high -- see --goal-mid above. A step rather than a ramp: the two are
    different compositions, not one being stretched. */
-@container viewport (min-width: 900px) {
+@container tw-stage (min-width: 900px) {
   .pitch { --goal-mid: 46.5%; }
 }
 
@@ -289,10 +153,10 @@
    1800px-wide image is 4.1190 goal widths across and 2.7643 tall, and the
    painted crossbar sits 1.1968 goal widths below its top edge.
 
-   It hangs off .pitch rather than off #stage because .goal is placed in the
+   It hangs off .pitch rather than off #tw-main because .goal is placed in the
    pitch's coordinates -- the two have to be measured in the same box or they
    drift apart as the rows above and below flex. It overflows the pitch on
-   every side, which is why .pitch no longer clips; #stage still does.
+   every side, which is why .pitch no longer clips; #tw-main still does.
 
    The fs-penalty plate had to be extended 300px at the bottom before export,
    stretched out of its own last rows and faded off, so the foreground grass
@@ -369,7 +233,7 @@
 /* Six sprites cannot show a landing, so the ground does it instead: a plume
    where the keeper's feet arrive. It hangs off the goal rather than off the
    keeper, so the squash in the dive tween does not stretch it too --
-   js/animator.js hands over the landing offset. */
+   campaign/animator.js hands over the landing offset. */
 .dust {
   position: absolute;
   z-index: 1;
@@ -565,16 +429,16 @@
 }
 
 /* Panels stop responding while a shot is in flight. */
-#stage[data-state="shooting"] .panel,
-#stage[data-state="celebrate"] .panel,
-#stage[data-state="form"] .panel,
-#stage[data-state="shooting"] .ball,
-#stage[data-state="celebrate"] .ball,
-#stage[data-state="form"] .ball { pointer-events: none; }
+#tw-main[data-state="shooting"] .panel,
+#tw-main[data-state="celebrate"] .panel,
+#tw-main[data-state="form"] .panel,
+#tw-main[data-state="shooting"] .ball,
+#tw-main[data-state="celebrate"] .ball,
+#tw-main[data-state="form"] .ball { pointer-events: none; }
 
 /* ══ goalkeeper ═══════════════════════════════════════════════ */
 
-/* His shadow, on its own element so js/animator.js can shrink and fade it
+/* His shadow, on its own element so campaign/animator.js can shrink and fade it
    while he is in the air and snap it back when he lands. A diver whose
    shadow never changes size does not look like he left the ground, and the
    drop-shadow filter on .keeper below cannot do this -- it is welded to the
@@ -618,7 +482,7 @@
    95.24% / 22.95% / 6.57%, which is what that project shipped, to within two
    hundredths of a point.
 
-   Changing any of these three moves every dive, because js/animator.js states
+   Changing any of these three moves every dive, because campaign/animator.js states
    the dive offsets as percentages of THIS box. The two are derived together
    or not at all. */
 .keeper {
@@ -660,7 +524,13 @@
 
 .ball-zone {
   position: relative;
-  flex: 0 0 clamp(118px, 20cqh, 240px);
+  /* svh, not cqh. Until the shell arrived this measured #stage, which WAS
+     the viewport: the ball zone was a fifth of the screen. #tw-main is the
+     viewport minus the two bars, so the same 20cqh drew a ball 16% smaller
+     — measured at 390x844, 95.9px before and 80.2px after. The composition
+     is against the screen, so it says so. Small viewport, not dynamic: it is
+     the stable one, and it is what css/fold.css uses for the same reason. */
+  flex: 0 0 clamp(118px, 20svh, 240px);
   container: ballzone / size;
   --ball: min(24.6cqw, 62cqh, 124px);
   --ball-top: 21%;
@@ -716,11 +586,11 @@
 }
 
 /* This one belongs to the ball standing on the spot. The moment a shot is
-   taken, js/fx.js draws a shadow that actually travels with the ball, so
+   taken, campaign/fx.js draws a shadow that actually travels with the ball, so
    this has to clear out or there would be two of them. */
-#stage[data-state="shooting"] .ball-zone::after,
-#stage[data-state="celebrate"] .ball-zone::after,
-#stage[data-state="form"] .ball-zone::after { opacity: 0; }
+#tw-main[data-state="shooting"] .ball-zone::after,
+#tw-main[data-state="celebrate"] .ball-zone::after,
+#tw-main[data-state="form"] .ball-zone::after { opacity: 0; }
 
 /* A nudge that reads as "tap a panel". Class-gated so the scripted flight
    in game.js is never fighting these keyframes. */
@@ -741,7 +611,7 @@
   container: tagline / inline-size;
   display: grid;
   place-items: center;
-  padding: clamp(12px, 2.2cqh, 30px) clamp(16px, 5cqw, 40px) clamp(10px, 1.9cqh, 26px);
+  padding: clamp(12px, 2.2svh, 30px) clamp(16px, 5cqw, 40px) clamp(10px, 1.9svh, 26px);
   text-align: center;
 }
 
@@ -796,7 +666,7 @@
 
    Was .burst, and drew only confetti. It now carries the ball in flight,
    the ball's travelling shadow, its motion blur, the net taking the shot
-   and the confetti -- everything js/fx.js draws. Deliberately NOT hidden
+   and the confetti -- everything campaign/fx.js draws. Deliberately NOT hidden
    under prefers-reduced-motion the way .dust and .hit are: the ball itself
    lives here, so hiding it would leave nothing to watch. fx.js cuts the
    motion instead, at source. */
@@ -855,7 +725,7 @@
    pitch column instead, where it overlaps the net base rather than falling out
    of the pitch and being clipped by its overflow. Same query as the layout
    switch in css/stage.css. */
-@container viewport (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
+@container tw-stage (min-aspect-ratio: 1 / 1) and (max-height: 640px) {
   .msg {
     top: auto;
     bottom: 3%;

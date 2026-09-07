@@ -59,108 +59,138 @@ README = """# tw-penalty — for whoever hosts this
 A static landing page: the visitor picks a corner of the goal, the keeper saves
 the first attempt, the second always goes in, and the goal opens the
 registration card. No build step, no server-side code, no runtime dependency,
-and not one third-party request. Upload the contents of this archive to any web
-server or object store and open `index.html`.
+and as shipped not one third-party request. Upload the contents of this archive
+to any web server or object store and open `index.html`.
 
 Everything is referenced with RELATIVE paths, so it runs from the root of a
 domain or from a subfolder without an edit.
 
-## 1. The four links
+## 1. campaign.js is the only file you edit
 
-`js/main.js`, at the top of the file. Each is a URL string or `null`:
+It sits at the root of the archive and is one file of commented settings.
 
-    HOME_URL     the logo in the header bar
-    LOGIN_URL    "Вже є акаунт? Увійти" under the register button
-    TERMS_URL    the consent sentence, first link        <- BLOCKS GO-LIVE
-    PRIVACY_URL  the consent sentence, second link       <- BLOCKS GO-LIVE
+**The header, the footer and the registration card are not this landing's
+code.** They are shared with every other Top Win landing — `css/shell.css`,
+`css/form.css`, `css/tokens.css`, `js/strings.js`, `js/i18n.js`, `js/form.js`,
+`js/shell.js` — so that one design cannot become three drawings of itself.
+Editing them here means the next landing gets a different card. `campaign/` is
+the game: the pitch, the keeper, the ball and the effects canvas.
 
-`null` leaves the anchor with NO href, so it is not a link at all: no tab stop,
-nothing announced, nothing to click. **Do not write `"#"`** — that offers a
-control that takes focus, is announced as a link and does nothing, and it drops
-a bare fragment into the address bar of a page that is not allowed to scroll.
+## 2. The five links
 
-`TERMS_URL` and `PRIVACY_URL` block go-live because the page collects an 18+
-consent. Dead consent links on a gambling registration form are a compliance
-problem, not a cosmetic one.
+`campaign.js` -> `links`. Each is a URL or an empty string:
 
-## 2. The form, and the fifth URL
+    home     the logo in the header bar
+    login    "Вже є акаунт? Увійти" under the register button
+    terms    the consent sentence, first link        <- BLOCKS GO-LIVE
+    privacy  the consent sentence, second link       <- BLOCKS GO-LIVE
+    cta      the "ПЕРЕЙТИ НА САЙТ" button on the confirmation screen
 
-`js/form.js`, at the top of the file — this is the one that is easy to miss,
-because it is not in the same file as the four above:
+An empty string leaves the anchor with NO href, so it is not a link at all: no
+tab stop, nothing announced, nothing to click. **Do not write `"#"`.**
 
-    SUBMIT       function (data) { ... }   what receives the registration
-    DESTINATION  URL                       the "ПЕРЕЙТИ НА САЙТ" button on the
-                                           confirmation screen
+`terms` and `privacy` block go-live because the page collects an 18+ consent.
+Dead consent links on a gambling registration form are a compliance problem,
+not a cosmetic one. All five used to live in two different JavaScript files —
+four in `js/main.js` and the fifth in `js/form.js` — which is exactly the kind
+of split that gets one of them forgotten at handover.
 
-With both `null` the page is fully demoable and sends nothing: the card
-validates, writes the payload to the browser console, and walks the
-confirmation screen anyway. To a visitor that looks like a completed
-registration. **Wire `SUBMIT` before go-live, or state in writing that the
-console route ships.**
+## 3. The form
 
-`SUBMIT` receives exactly what the visitor filled in:
+`campaign.js` -> `form.endpoint`. Set it and the card POSTs JSON there; a
+response carrying `{{ "login": "...", "password": "..." }}` fills the
+confirmation screen. `form.onRegister(payload)` is the escape hatch for
+anything more involved: it returns a promise and overrides `endpoint`.
 
-    { via: 'email' | 'phone',
-      contact:  the email, or the phone as unspaced E.164 (380931234567),
-      password: as typed,
-      lang:     'uk' | 'ru' | 'en' }
+The payload:
 
-It carries the password, which means **it must post to your own TLS endpoint
-and nowhere else**. It is called last, inside a try: a hook that throws costs
-you that one delivery, not the visitor's confirmation screen. Look for
-`[tw-penalty] the submit hook failed` in the console.
+    {{ method: 'email' | 'phone',
+      contact: the one that was filled in,
+      email, phone, password, consent,
+      lang: 'uk' | 'ru' | 'en',
+      bonus: '{bonus}',
+      landing_id: '{landing}',
+      ...form.hiddenFields, ...params }}
+
+It carries the password, which means **`endpoint` must be your own TLS endpoint
+and nowhere else**. A CSRF token belongs in `form.hiddenFields`.
+
+Leave both empty and NOTHING IS SENT: the validated payload goes to the browser
+console and the confirmation screen is walked anyway, so the page is demoable
+before the platform exists. It says so in the console, loudly, so it cannot be
+mistaken for a working integration.
 
 The phone field accepts `931234567`, `0931234567` and `380931234567` and
-normalises all three to the same value before your hook sees it.
+normalises all three before your hook sees them.
 
-## 3. Tracking
+## 4. Tracking, and the affiliate click id
 
-There is none, and there is no seam for one. This landing predates the
-affiliate passthrough that `tw-lp-template` added, so a `?click_id=...` on the
-landing URL does NOT ride through to the outbound click — attribution stops
-here. If the campaign needs it, say so: it is a change in this repo, not
-something to be configured in the archive.
+`campaign.js` -> `params` is appended to every outbound link and copied into the
+form payload.
 
-No analytics script, no pixel, no Content-Security-Policy meta. With the page
-as shipped it makes zero third-party requests; that is worth keeping.
+`campaign.js` -> `passthrough` names query parameters on the LANDING page's own
+URL that ride through to the outbound click:
 
-## 4. Languages
+    {passthrough}
 
-Ukrainian, Russian and English, all three in `js/i18n.js`, switched from the
-menu in the header bar. The choice persists in `localStorage` under `tw-lang`.
+That is how an affiliate click id survives the page. This landing had no such
+seam at all until it adopted the shared shell: an id on the landing URL was
+lost here and nowhere else.
 
-There is one HTML file, not three, and there is no `?lang=` override on the
-URL: to see another language, use the menu. Ukrainian is the default and the
-fallback on a first visit.
+`analytics.gtmId` / `analytics.metaPixelId` are empty and with both empty the
+page makes no third-party request. There is no Content-Security-Policy meta in
+this page's head, so nothing has to be relaxed for an endpoint on another
+origin — and nothing protects it either, which is worth knowing before adding
+a tag manager.
 
-## 5. Browsers
+## 5. Languages
 
-Read off the features this page uses, not measured on the devices — treat it
-as a floor to test against rather than a guarantee:
+Ukrainian, Russian and English, one HTML file, switched from the menu in the
+header bar and persisted in `localStorage` under `tw-lang`. `?lang=ru` on the
+URL forces one for a single creative without persisting it.
 
-    Chrome / Edge 105, Safari 16, Firefox 112
+Everything the header, the footer and the card say is in `js/strings.js`, which
+is the same file in every Top Win landing. What this campaign says — the
+tagline over the goal, the six panel labels, the two messages between shots —
+is in `campaign.js` -> `strings`.
 
-Container queries set the first two: `css/stage.css` and `css/game.css` size
-the whole pitch with them, so below that the layout does not merely degrade.
-Firefox is 112 rather than 110 because the registration card takes the page
-behind it out of the accessibility tree with `inert`; below that the card still
-opens and still traps focus by hand, but a screen reader can reach what is
-behind it.
+## 6. Browsers
 
-`backdrop-filter` on the header bar degrades to a flat colour and is not part
-of the floor.
+The hard requirement is `<dialog>` with `showModal()`: Chrome/Edge 79+,
+Safari 15.4+, Firefox 98+. Below that the registration card does not open at
+all, which is a failure and not a degradation.
 
-## 6. What is NOT in this archive
+Container queries set the practical floor: `css/stage.css` and
+`campaign/main.css` size the whole pitch with them, so below Chrome 105 /
+Safari 16 / Firefox 110 the layout does not merely degrade. The card's entry
+animation needs `@starting-style` (Chrome 117, Safari 17.4, Firefox 129) and
+simply appears without it; `backdrop-filter` falls back to a flat colour.
+
+These numbers are read off the features the page uses, not measured on devices.
+
+## 7. What is NOT in this archive
 
 `tools/`, `docs/` and the source renders in `raw/`. They are development files
-and have no business on a public URL — the two guard scripts, the art pipeline
-and the session notes all live in the repository instead:
+and have no business on a public URL — the four guards, the art pipeline and
+the session notes live in the repository instead:
 
     https://github.com/design-mkt-1/tw-penalty
 
 The live preview is https://design-mkt-1.github.io/tw-penalty/ and is built
 from the same allowlist this archive is built from.
 """
+
+
+def campaign_value(key):
+    """One value out of campaign.js, read as text. Good enough for a README and
+    deliberately not a JS parser. The trailing `// comment` is cut first: half
+    the keys carry one."""
+    text = (ROOT / "campaign.js").read_text(encoding="utf-8")
+    m = re.search(r"^\s*" + key + r":\s*(.+?),?\s*$", text, re.M)
+    if not m:
+        return ""
+    value = re.sub(r"\s*//.*$", "", m.group(1)).strip()
+    return value.rstrip(",").strip("'\"")
 
 
 def main() -> int:
@@ -171,7 +201,7 @@ def main() -> int:
     stamp = dt.date.today().isoformat()
     out_dir = ROOT / args.out
     out_dir.mkdir(parents=True, exist_ok=True)
-    zip_path = out_dir / f"{ROOT.name}-{stamp}.zip"
+    zip_path = out_dir / f"{campaign_value('id') or ROOT.name}-{stamp}.zip"
 
     staged = []
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
@@ -192,7 +222,10 @@ def main() -> int:
                         continue
                     z.write(f, rel)
                     staged.append(rel)
-        z.writestr("README-IT.md", README)
+        z.writestr("README-IT.md", README.format(
+            bonus=campaign_value("code"),
+            landing=campaign_value("id") or ROOT.name,
+            passthrough=campaign_value("passthrough") or "[]"))
         staged.append("README-IT.md")
 
     # The check. Cheap, and it is the whole reason to have a script rather than

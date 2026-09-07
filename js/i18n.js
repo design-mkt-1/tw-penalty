@@ -1,229 +1,121 @@
-/* Three locales, no dependencies, same shape as the other modules.
+/* Top Win i18n — the runtime translation engine and the language listbox.
 
-   Every visible string lives in STRINGS below rather than in the markup or
-   in game.js/form.js, so adding a fourth language is one more object and
-   nothing else. Nodes opt in with data-i18n="key"; attributes with
-   data-i18n-attr="attr:key" (semicolon-separated for more than one).
+   SHARED FILE. A campaign never edits this; tools/drift.py fails CI if it
+   moves. To add a language, edit js/strings.js and campaign.js — see the
+   header of js/strings.js for the four steps.
 
-   Ukrainian is the default and the fallback, so its table is the one that has
-   to be complete: t() falls through to it for anything a locale is missing,
-   and a key missing from the fallback too renders as the key itself. */
+   ── The model ────────────────────────────────────────────────
+   One HTML file, one page, all languages. Nodes opt in with data-i18n="key";
+   attributes with data-i18n-attr="attr:key" (semicolon-separated for more
+   than one). Nothing translatable is hardcoded in a component, which is what
+   lets a language be added without touching one.
+
+   The alternative — a separate HTML file per language — was tried in the last
+   landing and needed two dedicated CI jobs whose entire purpose was to detect
+   that its own three copies had drifted apart. A template that exists to stop
+   divergence must not ship a three-way copy of every page. One file cannot
+   drift from itself.
+
+   ── Two tables, merged ───────────────────────────────────────
+   TW_STRINGS (js/strings.js) is the shell's copy and is the same in every
+   campaign. TW_CAMPAIGN.strings (campaign.js) is this campaign's own. The
+   campaign wins on collision, so a campaign that needs a different
+   'promo.title' overrides it without forking the shell table.
+
+   ── Interpolation ────────────────────────────────────────────
+   {name} is replaced from t()'s second argument, and always from the offer
+   figures in campaign.js on top of that. This is why '225%' is not written
+   three times: the number lives once, in campaign.js, and each locale writes
+   only the sentence around it.
+
+   ── Fallback chain ───────────────────────────────────────────
+   current locale -> the first entry in `languages` -> the key itself. The
+   first language listed in campaign.js is therefore the one whose table has
+   to be complete. A key that renders as its own key is a bug tools/smoke.py
+   fails on. */
+
 (function () {
   'use strict';
 
-  var LANGS = ['ua', 'ru', 'en'];
-  var FALLBACK = 'ua';
+  var C = window.TW_CAMPAIGN || {};
+  var LANGS = (C.languages && C.languages.length ? C.languages : ['ua']).slice();
+  var FALLBACK = LANGS[0];
   var STORE_KEY = 'tw-lang';
 
-  /* "ua" is the code the design, the menu and this file use, and it is not a
-     language tag: ua is the REGION subtag for Ukraine, and the language is
-     uk. The distinction only matters where a real tag is required, so the
-     internal code is mapped rather than renamed -- documentElement.lang is
-     what a screen reader picks a voice and a pronunciation from, and lang="ua"
-     asks it to read Ukrainian as something that does not exist.
-
-     detect() reads through the same map, so a browser reporting uk-UA matches
-     the Ukrainian locale rather than falling through to the default by luck. */
-  var LOCALE = { ua: 'uk', ru: 'ru', en: 'en' };
-
-  /* \n means a real line break in the rendered text -- only the tagline uses
-     it, and it is the reason the markup no longer carries a <br>. */
-  var STRINGS = {
-    en: {
-      'title':          'Top Win — Score the penalty and win!',
-      'hdr.sound':      'Toggle sound',
-      'hdr.lang':       'Language',
-      'tagline':        'Score the penalty\nand win!',
-      'goal.aim':       'Choose where to shoot',
-      /* The six targets carry only a multiplier, and three of those repeat.
-         The position is what tells them apart; game.js joins it to the
-         multiplier, which stays in the markup. */
-      'cell.tl':        'Top left',
-      'cell.tc':        'Top centre',
-      'cell.tr':        'Top right',
-      'cell.bl':        'Bottom left',
-      'cell.bc':        'Bottom centre',
-      'cell.br':        'Bottom right',
-      'ball.shoot':     'Shoot at a random spot',
-      'msg.miss':       'So close! One more try',
-      'msg.goal':       'GOAL!',
-      /* The offer figures are final copy and identical in every language, so
-         they are strings here rather than markup: a locale that wanted to
-         write the amount differently can, without touching index.html. */
-      'promo.title':    'Welcome sports bonus',
-      'promo.pct':      '225%',
-      'promo.amount':   'up to 15000 UAH',
-      'tabs.label':     'Sign up with',
-      'tab.phone':      'PHONE',
-      'tab.email':      'EMAIL',
-      /* The placeholders are the design's own. The email field has no label
-         above it, which is why the word sits inside the box; the phone field
-         shows the shape of the number behind the fixed +380. */
-      'field.email':    'Email',
-      'field.phone':    '00 000 0000',
-      'field.phoneLabel': 'Phone number',
-      'field.password': 'Password',
-      'field.passwordHint': 'Enter password',
-      'field.reveal':   'Show password',
-      'err.phone':      'Invalid phone number',
-      'err.email':      'Invalid email address',
-      'err.password':   'Password is too short',
-      'dialog.close':   'Close',
-      /* Five pieces rather than one sentence with markup in it: the two links
-         are their own nodes, so a locale can move them within the sentence
-         and none of the strings carries a tag. */
-      'agree.aria':     'I am 18 and I accept the terms',
-      'agree.pre':      'I am 18 years old and I accept the ',
-      'agree.terms':    'Terms of Use',
-      'agree.mid':      ' and the ',
-      'agree.privacy':  'Privacy Policy',
-      'agree.post':     '.',
-      'cta.register':   'REGISTER',
-      'foot.have':      'Already have an account?',
-      'foot.login':     'Log in',
-      'done.title':     'Registration successful!',
-      'done.login':     'Login:',
-      'done.password':  'Password:',
-      'done.copy':      'Copy',
-      'done.note':      'Save your login details',
-      'cta.website':    'GO TO WEBSITE',
-      'footer.pay':     'Payment methods',
-      'footer.copy':    '© 2026 All rights reserved'
-    },
-
-    /* The default, the fallback, and the only table read straight off the
-       design. Every string from 'promo.title' down is the card's own copy,
-       transcribed from the Figma nodes rather than translated -- these are the
-       words the client signed off, apostrophes and casing included. The game
-       strings above them are ours: the pitch is not in the design. */
-    ua: {
-      'title':          'Top Win — Заб’єш пенальті та виграєш!',
-      'hdr.sound':      'Увімкнути або вимкнути звук',
-      'hdr.lang':       'Мова',
-      'tagline':        'Заб’єш пенальті\nта виграєш!',
-      'goal.aim':       'Оберіть, куди бити',
-      'cell.tl':        'Угорі ліворуч',
-      'cell.tc':        'Угорі по центру',
-      'cell.tr':        'Угорі праворуч',
-      'cell.bl':        'Унизу ліворуч',
-      'cell.bc':        'Унизу по центру',
-      'cell.br':        'Унизу праворуч',
-      'ball.shoot':     'Удар у випадкову точку',
-      'msg.miss':       'Так близько! Ще спроба',
-      'msg.goal':       'ГОЛ!',
-      'promo.title':    'Вітальний спортивний бонус',
-      'promo.pct':      '225%',
-      'promo.amount':   'до 15000 UAH',
-      'tabs.label':     'Спосіб реєстрації',
-      'tab.phone':      'ТЕЛЕФОН',
-      'tab.email':      'EMAIL',
-      'field.email':    'Email',
-      'field.phone':    '00 000 0000',
-      'field.phoneLabel': 'Номер телефону',
-      'field.password': 'Пароль',
-      'field.passwordHint': 'Введіть пароль',
-      'field.reveal':   'Показати пароль',
-      'err.phone':      'Невірний номер телефону',
-      'err.email':      'Невірна адреса електронної пошти',
-      'err.password':   'Пароль занадто короткий',
-      'dialog.close':   'Закрити',
-      'agree.aria':     'Мені 18 років, і я приймаю умови',
-      'agree.pre':      'Мені 18 років, і я приймаю ',
-      'agree.terms':    'Умови Використання',
-      'agree.mid':      ' та ',
-      'agree.privacy':  'Політику конфіденційності',
-      'agree.post':     '.',
-      'cta.register':   'ЗАРЕЄСТРУВАТИСЬ',
-      'foot.have':      'Вже є акаунт?',
-      'foot.login':     'Увійти',
-      'done.title':     'Реєстрація успішна!',
-      'done.login':     'Логін:',
-      'done.password':  'Пароль:',
-      'done.copy':      'Копіювати',
-      'done.note':      'Збережіть ваші дані для входу',
-      'cta.website':    'ПЕРЕЙТИ НА САЙТ',
-      /* The year is the design's, not the clock's: it is copy the client set,
-         so it changes when they change it rather than on 1 January. */
-      'footer.pay':     'Способи оплати',
-      'footer.copy':    '© 2026 Усі права захищені'
-    },
-
-    ru: {
-      'title':          'Top Win — Забей пенальти и выиграй!',
-      'hdr.sound':      'Включить или выключить звук',
-      'hdr.lang':       'Язык',
-      'tagline':        'Забей пенальти\nи выиграй!',
-      'goal.aim':       'Выберите, куда бить',
-      'cell.tl':        'Вверху слева',
-      'cell.tc':        'Вверху по центру',
-      'cell.tr':        'Вверху справа',
-      'cell.bl':        'Внизу слева',
-      'cell.bc':        'Внизу по центру',
-      'cell.br':        'Внизу справа',
-      'ball.shoot':     'Удар в случайную точку',
-      'msg.miss':       'Так близко! Ещё попытка',
-      'msg.goal':       'ГОЛ!',
-      /* Written, not transcribed. The Figma page carries the card in
-         Ukrainian only -- fourteen variants, all UA -- so unlike the block
-         above, this half of the Russian table has never been read by the
-         designer or by a native speaker. The offer figures are the exception:
-         225% and the amount are the same string in every locale. */
-      'promo.title':    'Приветственный спортивный бонус',
-      'promo.pct':      '225%',
-      'promo.amount':   'до 15000 UAH',
-      'tabs.label':     'Способ регистрации',
-      'tab.phone':      'ТЕЛЕФОН',
-      'tab.email':      'EMAIL',
-      'field.email':    'Email',
-      'field.phone':    '00 000 0000',
-      'field.phoneLabel': 'Номер телефона',
-      'field.password': 'Пароль',
-      'field.passwordHint': 'Введите пароль',
-      'field.reveal':   'Показать пароль',
-      'err.phone':      'Неверный номер телефона',
-      'err.email':      'Неверный адрес почты',
-      'err.password':   'Пароль слишком короткий',
-      'dialog.close':   'Закрыть',
-      'agree.aria':     'Мне 18 лет, и я принимаю условия',
-      'agree.pre':      'Мне 18 лет, и я принимаю ',
-      'agree.terms':    'Условия использования',
-      'agree.mid':      ' и ',
-      'agree.privacy':  'Политику конфиденциальности',
-      'agree.post':     '.',
-      'cta.register':   'ЗАРЕГИСТРИРОВАТЬСЯ',
-      'foot.have':      'Уже есть аккаунт?',
-      'foot.login':     'Войти',
-      'done.title':     'Регистрация успешна!',
-      'done.login':     'Логин:',
-      'done.password':  'Пароль:',
-      'done.copy':      'Копировать',
-      'done.note':      'Сохраните свои данные для входа',
-      'cta.website':    'ПЕРЕЙТИ НА САЙТ',
-      'footer.pay':     'Способы оплаты',
-      'footer.copy':    '© 2026 Все права защищены'
-    }
-  };
-
-  /* Shown inside the menu, so each language names itself. Never translated. */
-  var ENDONYM = { ua: 'Українська', ru: 'Русский', en: 'English' };
+  /* Must match the exit transition on .tw-langmenu in css/shell.css. */
+  var EXIT_MS = 120;
 
   var lang = FALLBACK;
   var watchers = [];
   var btn, menu, options;
   var hideTimer = 0;
 
-  /* Must match the exit transition on .lang-menu in css/game.css. */
-  var EXIT_MS = 120;
+  /* The merged table, built once per language on first use. */
+  var TABLE = {};
 
-  /* ── strings ──────────────────────────────────────────────── */
+  /* ── tables ───────────────────────────────────────────────── */
 
-  function t(key) {
-    var table = STRINGS[lang];
-    var value = table && table[key];
-    if (value == null) value = STRINGS[FALLBACK][key];
-    return value == null ? key : value;
+  function tableFor(code) {
+    if (TABLE[code]) return TABLE[code];
+    var shell = (window.TW_STRINGS || {})[code] || {};
+    var camp = (C.strings || {})[code] || {};
+    var out = {}, k;
+    for (k in shell) if (Object.prototype.hasOwnProperty.call(shell, k)) out[k] = shell[k];
+    for (k in camp) if (Object.prototype.hasOwnProperty.call(camp, k)) out[k] = camp[k];
+    TABLE[code] = out;
+    return out;
   }
 
+  /* Every string can reach the offer figures without being handed them.
+     Written as a function rather than captured once so a campaign that
+     changes the offer at runtime -- an A/B split, a query parameter -- gets
+     the new numbers on the next render. */
+  function offerVars() {
+    var o = C.offer || {};
+    return {
+      percent:  o.percent  || '',
+      amount:   o.amount   || '',
+      currency: o.currency || '',
+      spins:    o.spins    || '',
+      code:     o.code     || ''
+    };
+  }
+
+  /* ── lookup ───────────────────────────────────────────────── */
+
+  function t(key, vars) {
+    var value = tableFor(lang)[key];
+    if (value == null) value = tableFor(FALLBACK)[key];
+    if (value == null) return key;
+    return fill(value, vars);
+  }
+
+  /* Split rather than replace with a regex: a value that happens to contain
+     $& or $1 would be mangled by String.replace's own substitution syntax,
+     and an offer amount is exactly the kind of string that arrives from a
+     spreadsheet with a stray character in it. */
+  function fill(value, vars) {
+    if (value.indexOf('{') < 0) return value;
+    var all = offerVars(), k;
+    if (vars) for (k in vars) if (Object.prototype.hasOwnProperty.call(vars, k)) all[k] = vars[k];
+
+    var out = '', i = 0;
+    while (i < value.length) {
+      var open = value.indexOf('{', i);
+      if (open < 0) { out += value.slice(i); break; }
+      var close = value.indexOf('}', open);
+      if (close < 0) { out += value.slice(i); break; }
+      out += value.slice(i, open);
+      var name = value.slice(open + 1, close);
+      out += (all[name] == null ? '{' + name + '}' : all[name]);
+      i = close + 1;
+    }
+    return out;
+  }
+
+  /* \n means a real line break in the rendered text. The markup carries no
+     <br> anywhere, so a locale can break a headline where its own words
+     break rather than where Ukrainian's do. */
   function setText(el, value) {
     if (value.indexOf('\n') < 0) { el.textContent = value; return; }
     el.textContent = '';
@@ -233,8 +125,9 @@
     });
   }
 
-  /* Re-render one subtree. form.js calls it with the done step after it
-     swaps the account label between phone and email. */
+  /* Re-render one subtree. js/form.js calls it with the done panel after it
+     swaps the account label between phone and email; a campaign calls it
+     after it builds markup of its own. */
   function apply(root) {
     root = root || document;
 
@@ -244,13 +137,15 @@
 
     Array.prototype.forEach.call(root.querySelectorAll('[data-i18n-attr]'), function (el) {
       el.getAttribute('data-i18n-attr').split(';').forEach(function (pair) {
-        var bits = pair.split(':');
-        if (bits.length === 2) el.setAttribute(bits[0].trim(), t(bits[1].trim()));
+        var at = pair.indexOf(':');
+        if (at > 0) el.setAttribute(pair.slice(0, at).trim(), t(pair.slice(at + 1).trim()));
       });
     });
 
-    // The tag, not our internal code -- see LOCALE at the top of the file.
-    document.documentElement.lang = LOCALE[lang] || lang;
+    /* The BCP-47 tag, not our internal code. lang="ua" asks a screen reader
+       to read Ukrainian as a language that does not exist. */
+    var meta = (window.TW_LOCALES || {})[lang];
+    document.documentElement.lang = (meta && meta.tag) || lang;
   }
 
   function set(next) {
@@ -262,8 +157,47 @@
     watchers.forEach(function (fn) { fn(next); });
   }
 
-  /* Saved choice wins, then the browser's own language, then English. */
+  /* ?lang= wins, then the saved choice, then the browser, then the first
+     language in campaign.js.
+
+     The query parameter exists so a media buyer can point one creative at
+     ?lang=ru without the template needing a second HTML file. It is not
+     persisted: a link that forces a language should not overwrite what the
+     visitor chose on a previous visit. */
+  /* ── one language per file ────────────────────────────────────
+     A campaign that serves a separate HTML file per language sets
+     `languageUrls` in campaign.js: { ua: './index.html', ru: './ru.html' }.
+     The menu then navigates instead of re-rendering, and the file decides
+     the language rather than the visitor's browser or a stale saved choice.
+
+     Without that map nothing changes: one HTML file, the table swaps in
+     place, and the choice persists. */
+  function urlFor(code) {
+    var map = C.languageUrls || {};
+    return map[code] || '';
+  }
+
+  function byFile() {
+    return Object.keys(C.languageUrls || {}).length > 0;
+  }
+
   function detect() {
+    /* In file mode the page IS the language, and nothing may override it.
+       ?lang=en on ru.html would otherwise leave the card speaking English
+       inside a Russian page — the failure that made tw-flip-cards-lp pin
+       `languages` to a single entry before this existed. */
+    if (byFile()) {
+      var tag = (document.documentElement.lang || '').toLowerCase();
+      for (var j = 0; j < LANGS.length; j++) {
+        var m = (window.TW_LOCALES || {})[LANGS[j]];
+        if (m && m.tag === tag) return LANGS[j];
+      }
+      return FALLBACK;
+    }
+
+    var forced = new URLSearchParams(location.search).get('lang');
+    if (forced && LANGS.indexOf(forced) >= 0) return forced;
+
     var saved = null;
     try { saved = localStorage.getItem(STORE_KEY); } catch (e) { /* private mode */ }
     if (LANGS.indexOf(saved) >= 0) return saved;
@@ -271,32 +205,37 @@
     /* Matched against the real language tags, not against our own codes: a
        Ukrainian browser reports uk-UA, which never equals "ua". Comparing the
        two directly landed every Ukrainian visitor on the fallback and only
-       looked correct because the fallback is Ukrainian. */
+       looked correct because the fallback happens to be Ukrainian. */
     var nav = (navigator.language || '').slice(0, 2).toLowerCase();
     for (var i = 0; i < LANGS.length; i++) {
-      if (LOCALE[LANGS[i]] === nav) return LANGS[i];
+      var meta = (window.TW_LOCALES || {})[LANGS[i]];
+      if (meta && meta.tag === nav) return LANGS[i];
     }
     return FALLBACK;
   }
 
-  /* ── selector ─────────────────────────────────────────────── */
+  /* ── the listbox ──────────────────────────────────────────── */
 
-  /* A listbox, not a dialog: focus moves along the options with the arrow
-     keys instead of being trapped, so this deliberately does not reuse the
-     Tab trap in form.js -- that pattern is for modals. */
+  /* A listbox, not a modal: focus moves along the options with the arrow keys
+     instead of being trapped, and Tab hands focus back to the trigger and
+     carries on. This deliberately does not reuse the focus handling in
+     js/form.js -- that pattern is for dialogs and would strand the visitor
+     here. */
 
-  function isOpen() {
-    return btn.getAttribute('aria-expanded') === 'true';
+  /* reset.css forces [hidden] to display:none !important and display cannot
+     be transitioned, so the menu's open state is a class: unhide, let one
+     frame pass, then add it. The dialog does the same two-step. */
+  function nextFrame(fn) {
+    requestAnimationFrame(function () { requestAnimationFrame(fn); });
   }
 
-  /* reset.css forces [hidden] to display:none !important, so the menu cannot
-     transition its own display. Unhide first, let one frame pass, then add
-     the class the transition runs on -- the same two-step as form.js. */
+  function isOpen() { return btn.getAttribute('aria-expanded') === 'true'; }
+
   function openMenu(focusIndex) {
     clearTimeout(hideTimer);
     menu.hidden = false;
     btn.setAttribute('aria-expanded', 'true');
-    TWFx.next(function () { menu.classList.add('is-open'); });
+    nextFrame(function () { menu.classList.add('is-open'); });
 
     document.addEventListener('keydown', onKeydown, true);
     document.addEventListener('pointerdown', onPointerDown, true);
@@ -313,8 +252,9 @@
     document.removeEventListener('keydown', onKeydown, true);
     document.removeEventListener('pointerdown', onPointerDown, true);
 
-    // Focus has to leave before the menu is taken out of the layout, or the
-    // browser drops it on <body> and the next Tab starts from the top.
+    /* Focus has to leave before the menu is taken out of the layout, or the
+       browser drops it on <body> and the next Tab restarts from the top of
+       the page. */
     if (restoreFocus !== false) btn.focus({ preventScroll: true });
     else if (menu.contains(document.activeElement)) document.activeElement.blur();
 
@@ -344,9 +284,8 @@
         break;
       case 'Tab':
         /* Hand focus back to the trigger and let the Tab carry on from there,
-           forwards or backwards. Closing with `false` blurred instead, which
-           is the exact failure the comment in closeMenu warns about: the next
-           Tab restarted from the top of the page. */
+           forwards or backwards. Closing with `false` blurs instead, which is
+           the exact failure closeMenu warns about. */
         closeMenu();
         break;
     }
@@ -357,32 +296,36 @@
   }
 
   function choose(option) {
-    set(option.getAttribute('data-lang'));
+    var code = option.getAttribute('data-lang');
+    var href = urlFor(code);
+    if (href) { location.assign(href); return; }   // one language per file
+    set(code);
     closeMenu();
   }
 
   function syncSelector() {
     if (!btn) return;
-    btn.querySelector('.lang__code').textContent = lang.toUpperCase();
+    var code = btn.querySelector('.tw-lang__code');
+    if (code) code.textContent = lang.toUpperCase();
 
-    // The trigger carries a globe now, the way the design draws it, so there
-    // is no flag on it to keep in step with the choice -- only the code and
-    // which row shows its tick.
+    /* The trigger carries a globe, the way the design draws it, so there is
+       no flag on it to keep in step with the choice -- only the code and
+       which row shows its tick. */
     options.forEach(function (o) {
-      o.setAttribute('aria-selected',
-                     String(o.getAttribute('data-lang') === lang));
+      o.setAttribute('aria-selected', String(o.getAttribute('data-lang') === lang));
     });
   }
 
+  /* The markup is built by js/shell.js from TW_LOCALES filtered by
+     campaign.languages, so this only wires what it finds. A campaign with
+     header.lang = false has no trigger and this is a no-op. */
   function wireSelector() {
-    btn = document.querySelector('.lang');
-    menu = document.querySelector('.lang-menu');
+    btn = document.querySelector('.tw-lang');
+    menu = document.querySelector('.tw-langmenu');
     if (!btn || !menu) return;
 
     options = Array.prototype.slice.call(menu.querySelectorAll('[data-lang]'));
     options.forEach(function (o) {
-      var code = o.getAttribute('data-lang');
-      o.querySelector('.lang-opt__name').textContent = ENDONYM[code] || code;
       o.addEventListener('click', function () { choose(o); });
     });
 
@@ -390,7 +333,7 @@
       if (isOpen()) closeMenu(); else openMenu();
     });
 
-    // Opening straight onto an end of the list is the expected shortcut.
+    /* Opening straight onto an end of the list is the expected shortcut. */
     btn.addEventListener('keydown', function (ev) {
       if (ev.key === 'ArrowDown') { ev.preventDefault(); openMenu(0); }
       else if (ev.key === 'ArrowUp') { ev.preventDefault(); openMenu(options.length - 1); }
@@ -398,8 +341,6 @@
 
     syncSelector();
   }
-
-  /* ── boot ─────────────────────────────────────────────────── */
 
   function init() {
     lang = detect();
@@ -414,6 +355,10 @@
     apply: apply,
     langs: LANGS,
     current: function () { return lang; },
+    tag: function () {
+      var meta = (window.TW_LOCALES || {})[lang];
+      return (meta && meta.tag) || lang;
+    },
     onChange: function (fn) { watchers.push(fn); }
   };
-})();
+}());

@@ -8,14 +8,14 @@ is, and the shading is a light direction, a specular lobe and a rim, sampled
 per pixel off the surface normal.
 
 The spin axis is vertical in the frame, so the panels travel across it. At
-draw time js/fx.js rotates the whole frame to the direction of flight, which
+draw time campaign/fx.js rotates the whole frame to the direction of flight, which
 turns that into a ball turning over along its own trajectory, whichever way
 the shot goes.
 """
 import numpy as np
 from PIL import Image
 
-# These three are duplicated in js/fx.js as BALL_FRAMES, BALL_COLS and
+# These three are duplicated in campaign/fx.js as BALL_FRAMES, BALL_COLS and
 # BALL_CELL, which is how the reader knows where each frame starts. Changing
 # them here alone does not raise anything: the sheet is still a valid image,
 # the reader still slices it, and the ball in flight is quietly cut from the
@@ -72,7 +72,7 @@ COLOUR[len(PENT):] = WHITE
 
 def rot_y(a):
     """Spin about the vertical axis of the frame, so the panels travel across
-    it. js/fx.js rotates the frame to the direction of flight, which turns
+    it. campaign/fx.js rotates the frame to the direction of flight, which turns
     that into a ball turning over along its own trajectory."""
     c, s = np.cos(a), np.sin(a)
     return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])

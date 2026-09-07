@@ -100,7 +100,7 @@ def confetti(rng):
     flutter is band-passed noise breathing under all of it while the bits
     fall, and it is the layer that decides how long the sound feels.
 
-    Timed against js/game.js, which fires TWFx.burst 180ms after the ball
+    Timed against campaign/main.js, which fires TWFx.burst 180ms after the ball
     crosses the line and holds the celebrate state for 1500ms.
     """
     n = seconds(0.85)

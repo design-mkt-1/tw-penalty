@@ -208,7 +208,7 @@
 
   /* Called when the registration card closes. The stage is still carrying
      data-state="form", which holds .panel and .ball at pointer-events:none
-     (css/game.css), and `attempt` is still past the end of the scripted
+     (campaign/main.css), and `attempt` is still past the end of the scripted
      sequence — so without this the page is dead, and clearing only the state
      would make the next shot score instantly. Both have to be undone together. */
   function reset() {
@@ -246,7 +246,7 @@
   }
 
   function init() {
-    stage  = document.getElementById('stage');
+    stage  = document.getElementById('tw-main');
     ball   = document.querySelector('.ball');
     keeper = document.querySelector('.keeper');
     goal   = document.querySelector('.goal');
@@ -259,7 +259,7 @@
     anim = new TWAnimator.PoseAnimator(keeper,
                                        document.querySelector('.keeper-shadow'));
     /* 283 kB of dive sprites that nothing needs until the first shot. The one
-       pose on screen, keeper-idle, comes from css/game.css and is already
+       pose on screen, keeper-idle, comes from campaign/main.css and is already
        loading. Warm the rest when the browser is idle, or on the first
        gesture, whichever comes first — a shot cannot start before that
        gesture, so the sprites are never late. */
@@ -297,4 +297,35 @@
     reset: reset,
     attempt: function () { return attempt; }
   };
+
+  /* The mechanic boots itself, which is what every campaign on this template
+     does — there is no js/main.js any more. TW.ready() fires after js/shell.js
+     has mounted the header, the footer and the card and after js/i18n.js has
+     rendered, so the panels' labels and the tagline are already in the
+     visitor's language when the first frame is measured.
+
+     The mute button, the audio unlock and the four link seams were also in
+     that file. The shell owns all three now: js/shell.js wires the speaker it
+     draws, js/audio.js unlocks on the first gesture by itself, and the links
+     come from campaign.js § links. */
+  function boot() {
+    init();
+    if (window.TWStage) TWStage.fit();
+
+    /* Hand the pitch back when the card closes. #tw-main still carries
+       data-state="form", which holds .panel and .ball at pointer-events:none,
+       and the attempt counter is still past the end of the scripted sequence:
+       without this the page is alive but unplayable behind a card nobody can
+       see. js/form.js used to call TWGame.reset() itself, from inside this
+       repo's own copy of it — the shared card does not know this game exists,
+       so the game listens instead. */
+    if (window.TW) TW.on('formclose', reset);
+  }
+
+  if (window.TW) TW.ready(boot);
+  else if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
 })();

@@ -36,21 +36,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 ROOT = Path(__file__).resolve().parent.parent
 CSS = ROOT / "css"
-
-# tokens.css declares the colours; game.css is this landing's mechanic.
-#
-# In tw-lp-template the mechanic lives in campaign/main.css, which this guard
-# does not scan at all: a campaign owns the colours of its own effects -- a
-# ball glow, a net, the alpha ramp under a title -- and they are neither brand
-# values nor shared with anything. tw-penalty predates that layout and keeps
-# its mechanic in css/, so the same boundary has to be drawn by name here.
-#
-# What is NOT exempt by this: every brand and chrome value in game.css was
-# routed onto the semantic layer on 2026-09-07 (the header bar, the language
-# menu, the flag ring, the hover fills -- twenty in all, each one a token the
-# template already declared with the same value). The exemption covers the
-# effects that are left, not a licence to type #ff4500 into the game again.
-ALLOWED = {"tokens.css", "game.css"}
+ALLOWED = {"tokens.css"}
 
 # A hex colour, or an rgb()/rgba()/hsl()/hsla() call. Written to skip things
 # that merely look like one: an id selector (#tw-main), a fragment in a url().

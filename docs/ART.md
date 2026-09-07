@@ -89,7 +89,7 @@ Asking for "no advertising boards" did not remove it. Stating the requirement
 as *brightness*, and naming the zone it applies to, did. That is the paragraph
 headed CONTRAST above, and it is why the prompt says the same thing three ways.
 
-The plate is the composition's ruler: `css/game.css` measures the goal in it
+The plate is the composition's ruler: `campaign/main.css` measures the goal in it
 and hangs everything else off that one unit. A new plate invalidates those
 numbers — see `docs/NEXT-SESSION.md` for how they are re-derived.
 
@@ -100,7 +100,7 @@ rotation sheet `assets/img/ball-spin.webp` from the palette, in Orange Fire and
 Midnight Navy — six orange pentagons and six navy, white hexagons between them,
 checked at render size against the navy pitch.
 
-`FRAMES`, `COLS` and `SIZE` in that script are duplicated in `js/fx.js` as
+`FRAMES`, `COLS` and `SIZE` in that script are duplicated in `campaign/fx.js` as
 `BALL_FRAMES`, `BALL_COLS`, `BALL_CELL`. Change one side alone and nothing
 raises: the sheet stays a valid image and the reader keeps slicing it, from the
 wrong cells.
@@ -133,7 +133,7 @@ spans .856 and .858 of it for `idle` and `cheer`. That is inside a thousandth.
 The reference image holds the camera by itself.
 
 Check those two numbers on every new pose anyway. They are cheap to measure and
-they are the thing that breaks silently: `css/game.css` sizes `.keeper` as one
+they are the thing that breaks silently: `campaign/main.css` sizes `.keeper` as one
 fixed box for all ten sprites, so a pose rendered at a different scale does not
 error, it just makes the character grow mid-dive.
 
@@ -225,7 +225,7 @@ Job `f100c2a6-79c1-4e76-8327-71736dfe94a6`. Mirrored to `jump_R1`.
 > below him. He is airborne with nothing underneath him.
 
 L and R are the **viewer's**, matching the panel columns in
-`js/animator.js`. Getting that backwards sends the keeper away from the ball on
+`campaign/animator.js`. Getting that backwards sends the keeper away from the ball on
 every save.
 
 ### jump_center — high, down the middle
@@ -282,7 +282,7 @@ rather than things it said badly.
 held in the keeper's gloves. Nothing in the prompt asked for one and nothing
 forbade one either -- it excluded text, logos and watermarks, and a diving
 goalkeeper holding a ball is what the model reasonably assumed. A ball baked
-into a sprite is a second ball on screen, because `js/fx.js` draws the real one
+into a sprite is a second ball on screen, because `campaign/fx.js` draws the real one
 on the canvas. Every pose prompt now carries:
 
 > NOTHING IS IN HIS HANDS. There is no football anywhere in the frame. His
@@ -327,7 +327,7 @@ each figure's bounding box sits, and how tall it is:
 | beaten | .214 | .158 | .776 | .933 | .775 |
 
 The Top Win figure is deliberately bigger in its canvas — .856 against .803 —
-which is why the keeper box in `css/game.css` is re-derived rather than
+which is why the keeper box in `campaign/main.css` is re-derived rather than
 inherited. The dives are the rows to read carefully: a dive sprite carries the
 body angle only, and the travel across the goal is a CSS translation, so the
 figure sits near the centre of its own canvas and does not lean out of it.

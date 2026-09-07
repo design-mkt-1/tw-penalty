@@ -13,7 +13,7 @@
      written against. */
   var GOAL_REF = 360;
 
-  var stage = document.getElementById('stage');
+  var stage = document.getElementById('tw-main');
   var fx = document.querySelector('.fx');
 
   /* Cap the buffer at 2x: past that the scene costs more to draw than it

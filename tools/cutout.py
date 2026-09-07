@@ -71,7 +71,7 @@ JOBS = {
 }
 
 # The goal is no longer a sprite: it is painted into assets/img/pitch-spot.webp
-# and css/game.css measures it. The ball is no longer keyed out of a render
+# and campaign/main.css measures it. The ball is no longer keyed out of a render
 # either -- tools/ball_sheet.py renders it and its rotation frames outright.
 
 # Sprites produced by mirroring another sprite rather than by generation.
@@ -280,7 +280,7 @@ def main():
     # because the widest it is ever drawn is 3.9876 goal widths and the goal
     # caps at 560px -- 2233 CSS pixels, which 1800 covers acceptably for a dark
     # backdrop and covers outright on a phone. Anything larger is bytes nobody
-    # sees. The goal is painted into this plate; css/game.css measures it.
+    # sees. The goal is painted into this plate; campaign/main.css measures it.
     bg_path = os.path.join(RAW, '_raw-pitch-spot.png')
     if os.path.exists(bg_path):
         img = Image.open(bg_path).convert('RGB')

@@ -26,15 +26,48 @@ Live: **https://design-mkt-1.github.io/tw-penalty/**
 | Accessibility audit | done — `823d7b8` |
 | Composition pass | done — `df33024`, `b6ca8c7` |
 | Guards, and a close button on the card | done — 2026-09-07 |
+| Ported onto tw-lp-template | done — 2026-09-07 |
 
 **Everything buildable is built.** What is left is one gate that cannot be
 closed from a desk, one decision that belongs to the client, and three declared
 limitations. They are at the bottom of this file.
 
+## This landing is a template clone now
+
+The header, the footer and the registration card are `tw-lp-template`'s files,
+byte for byte — `python tools/drift.py` says 16 of 16 — and what is left here
+is the game: `campaign/main.js`, `animator.js`, `fx.js`, `stage.js` and
+`campaign/main.css`, plus `campaign.js`, which is where the offer, the five
+links, the form seam, the tracking and this campaign's own words live.
+
+The template was distilled OUT of this repo, which is why adopting it back
+changed no copy: of the 35 shell strings the two tables share, 35 were already
+word for word identical. The two that were not — `promo.pct` and
+`promo.amount` — hardcoded 225% and 15000 UAH, and those figures are now
+numbers in `campaign.js § offer` that every locale interpolates.
+
+What did change, and both were measured rather than assumed:
+
+- The mechanic's box is `#tw-main`, the space the two bars leave, where it used
+  to be `#stage`, which was the whole viewport. Anything sized in `cqh` of it
+  therefore measures a shorter box: the ball came out 16% smaller until
+  `.ball-zone` and `.tagline` were moved to `svh`, which is what they always
+  meant. Verified at 390×844: 95.9px before, 95.9px after.
+- The goal is 1.3% narrower on a desktop — 558.9px to 551.6px at 1440×900 —
+  because the shared bars are 5px taller together than the ones this page drew
+  itself, and `--gw` is capped by the pitch's height there. On a phone the
+  width cap binds instead and nothing moved at all.
+
+`js/main.js` is gone: the shell wires the mute button, the audio unlocks
+itself, the links come from `campaign.js`, and the game boots itself at the
+bottom of `campaign/main.js`. It listens for `formclose` to hand the pitch
+back, which the old `js/form.js` used to do by calling `TWGame.reset()`
+directly — the shared card does not know this game exists.
+
 ## What was measured, and why those numbers
 
 Nothing in the geometry is tuned by eye. Each number is a measurement divided by
-one unit, and the comments in `css/game.css` carry the raw pixels so the chain
+one unit, and the comments in `campaign/main.css` carry the raw pixels so the chain
 can be re-derived rather than trusted.
 
 **The plate.** In `assets/img/pitch-spot.webp` (1800×1208) the posts stand at
@@ -159,10 +192,10 @@ by regenerating `pitch-spot.webp` byte-identical.
 ## Traps already paid for
 
 - **`FRAMES`, `COLS` and `SIZE` in `tools/ball_sheet.py` are duplicated in
-  `js/fx.js`** as `BALL_FRAMES`, `BALL_COLS`, `BALL_CELL`. Change one side alone
+  `campaign/fx.js`** as `BALL_FRAMES`, `BALL_COLS`, `BALL_CELL`. Change one side alone
   and nothing raises: the sheet stays a valid image and the reader keeps slicing
-  it, from the wrong cells. `SHADOW_K` and `landing()` in `js/animator.js` are
-  the same hazard against three widths in `css/game.css`.
+  it, from the wrong cells. `SHADOW_K` and `landing()` in `campaign/animator.js` are
+  the same hazard against three widths in `campaign/main.css`.
 - **`tools/cutout.py` deliberately does not trim keeper poses.** A sprawling dive
   and an upright idle have different bounding boxes; trimming destroys the shared
   coordinate space that lets `.keeper` be a fixed box.
@@ -173,9 +206,9 @@ by regenerating `pitch-spot.webp` byte-identical.
   grey blob on the navy pitch. `enclosed_pockets` judges each unreachable region
   on tone. Check any pose where a limb closes a loop.
 - **Say there is no ball in the pose prompts.** A diving goalkeeper holding one
-  is what the model assumes, and `js/fx.js` draws the real ball on the canvas.
+  is what the model assumes, and `campaign/fx.js` draws the real ball on the canvas.
 - **A container query does not change specificity.** `css/stage.css` loads before
-  `css/game.css` and `css/footer.css`, so a bare class in its landscape block
+  `campaign/main.css` and `css/footer.css`, so a bare class in its landscape block
   loses to the same class declared later — which is why `#stage .tagline` and
   `#stage .ftr` carry the id. The tagline half of that was broken since the port.
 - **The header and the footer bracket the play area at `z-index: 46`.**
@@ -219,7 +252,7 @@ python tools/fonts.py --check    # every rendered character is in a shipped face
 ```
 
 Both come from `tw-lp-template`, which was distilled out of this landing.
-`tools/tokens.py` exempts `css/game.css` by name: the mechanic owns the colours
+`tools/tokens.py` exempts `campaign/main.css` by name: the mechanic owns the colours
 of its own effects, exactly as a campaign's `campaign/main.css` goes unscanned
 in the template. Everything brand or chrome in `game.css` was routed onto the
 semantic layer on 2026-09-07. `tools/drift.py` and `tools/smoke.py` are

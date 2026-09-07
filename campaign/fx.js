@@ -10,7 +10,7 @@
    cannot separate from it convincingly. Those two are most of what makes a
    flight read as an object travelling away rather than a sticker shrinking.
 
-   Every hand-tuned distance in here is in the same units js/game.js used:
+   Every hand-tuned distance in here is in the same units campaign/main.js used:
    pixels at a 360px goal, multiplied by TWStage.unit(). */
 (function () {
   'use strict';
@@ -114,7 +114,7 @@
     return stage.getBoundingClientRect();
   }
 
-  /* Stage-local coordinates. The canvas covers #stage and js/stage.js has
+  /* Stage-local coordinates. The canvas covers #tw-main and campaign/stage.js has
      already set the buffer transform, so everything drawn here is in CSS
      pixels measured from the stage's top-left corner. */
   function local(el) {
@@ -265,7 +265,7 @@
      shake is.
 
      Still written on .pitch, but .pitch is now the thing that moves:
-     css/game.css puts the two variables on its `translate`. It no longer
+     campaign/main.css puts the two variables on its `translate`. It no longer
      clips, so transforming it cannot show its edges. */
   function shake(ms, px) {
     if (reduced()) return;
@@ -565,7 +565,7 @@
 
   /* ══ celebration ══════════════════════════════════════════════
 
-     Moved from js/game.js unchanged in behaviour -- same 110 bits, same
+     Moved from campaign/main.js unchanged in behaviour -- same 110 bits, same
      upward fan, same Euler step with gravity and drag. It shares the loop
      and the canvas now instead of running a second one of each. */
 
@@ -624,7 +624,7 @@
   /* ══ boot ═════════════════════════════════════════════════════ */
 
   function init() {
-    stage = document.getElementById('stage');
+    stage = document.getElementById('tw-main');
     canvas = document.querySelector('.fx');
     goalEl = document.querySelector('.goal');
     if (canvas) ctx = canvas.getContext('2d');

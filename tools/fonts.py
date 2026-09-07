@@ -37,13 +37,9 @@ if hasattr(sys.stdout, "reconfigure"):
 ROOT = Path(__file__).resolve().parent.parent
 FONTS = ROOT / "assets" / "fonts"
 
-# Everything the page can put on screen. In tw-lp-template this reads
-# js/strings.js and campaign.js, the two halves of that repo's string table;
-# tw-penalty predates the split and keeps all three locales in js/i18n.js.
-# Nothing else needs listing: no other script writes a literal string to the
-# DOM -- js/form.js builds its errors and its confirmation screen out of the
-# same table -- and the default-locale copy is in index.html.
-SOURCES = [ROOT / "js" / "i18n.js", ROOT / "index.html"]
+# Everything the page can put on screen: the shell's copy, the campaign's copy
+# and whatever is written straight into the HTML.
+SOURCES = [ROOT / "js" / "strings.js", ROOT / "campaign.js", ROOT / "index.html"]
 
 # Characters that never reach a glyph: markup, code, and the whitespace and
 # control characters no font is asked for.

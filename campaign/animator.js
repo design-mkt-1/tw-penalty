@@ -11,13 +11,13 @@
      that carry the character across to the panel he is covering.
 
      Percentages, not pixels: translate() resolves them against the element's
-     own size, and css/game.css sizes the keeper as a share of the goal. So a
+     own size, and campaign/main.css sizes the keeper as a share of the goal. So a
      dive lands on the same panel whether the goal renders 260px wide or 560.
 
      Solved, not scaled. Every number here was re-derived when the Top Win
      figure replaced the reference project's, because a percentage of the
      keeper's own box is only a fixed distance across the goal while the box
-     keeps its proportion to it -- and it did not: css/game.css now sizes the
+     keeps its proportion to it -- and it did not: campaign/main.css now sizes the
      box at 21.81% of the goal's width against 22.95%, off a figure spanning
      .8562 of its canvas against .809.
 
@@ -399,11 +399,11 @@
      never looks like he left the ground.
 
      Offsets are percentages of the shadow's own box, so they have to be
-     converted out of the keeper's. Both widths are declared in css/game.css
+     converted out of the keeper's. Both widths are declared in campaign/main.css
      and restated here as a ratio: .keeper is 21.81% of the goal wide and
      .keeper-shadow 25.5%. Change either there and this number is wrong here,
      silently -- the shadow simply drifts out from under him. Same hazard as
-     the sheet constants shared between tools/ball_sheet.py and js/fx.js.
+     the sheet constants shared between tools/ball_sheet.py and campaign/fx.js.
 
      The figures this comment used to quote, 30.6% and 34%, matched no
      stylesheet this project has shipped; the ratio was right and the numbers
@@ -441,7 +441,7 @@
 
   /* Where the keeper's feet land, as a share of the dust plume's own width.
      The same conversion as SHADOW_K and the same hazard: .keeper is 21.81% of
-     the goal wide in css/game.css and .dust 19.5%, so a pose offset of p.x%
+     the goal wide in campaign/main.css and .dust 19.5%, so a pose offset of p.x%
      of the keeper is p.x * .2181 / .195 of the plume. game.js uses this to
      put the puff under him instead of under the middle of the goal. */
   PoseAnimator.prototype.landing = function (name) {
