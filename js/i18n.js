@@ -68,6 +68,7 @@
       'err.phone':      'Invalid phone number',
       'err.email':      'Invalid email address',
       'err.password':   'Password is too short',
+      'dialog.close':   'Close',
       /* Five pieces rather than one sentence with markup in it: the two links
          are their own nodes, so a locale can move them within the sentence
          and none of the strings carries a tag. */
@@ -125,6 +126,7 @@
       'err.phone':      'Невірний номер телефону',
       'err.email':      'Невірна адреса електронної пошти',
       'err.password':   'Пароль занадто короткий',
+      'dialog.close':   'Закрити',
       'agree.aria':     'Мені 18 років, і я приймаю умови',
       'agree.pre':      'Мені 18 років, і я приймаю ',
       'agree.terms':    'Умови Використання',
@@ -181,6 +183,7 @@
       'err.phone':      'Неверный номер телефона',
       'err.email':      'Неверный адрес почты',
       'err.password':   'Пароль слишком короткий',
+      'dialog.close':   'Закрыть',
       'agree.aria':     'Мне 18 лет, и я принимаю условия',
       'agree.pre':      'Мне 18 лет, и я принимаю ',
       'agree.terms':    'Условия использования',

@@ -444,6 +444,13 @@
     card.querySelector('[data-action="close"]')
         .addEventListener('click', function () { close(go); });
 
+    /* Two exits, and they must not share a handler: "close" above is GO TO
+       WEBSITE on the done screen and takes the visitor to DESTINATION;
+       "dismiss" is the corner button, which hands the pitch back exactly as
+       Escape does and navigates nowhere. */
+    card.querySelector('[data-action="dismiss"]')
+        .addEventListener('click', function () { close(); });
+
     // The soft keyboard changes the usable height; re-fit the stage around it.
     card.addEventListener('focusin', function () { TWStage.fit(); });
     card.addEventListener('focusout', function () { TWStage.fit(); });

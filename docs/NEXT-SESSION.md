@@ -25,6 +25,7 @@ Live: **https://design-mkt-1.github.io/tw-penalty/**
 | 9. Handoff | this file |
 | Accessibility audit | done — `823d7b8` |
 | Composition pass | done — `df33024`, `b6ca8c7` |
+| Guards, and a close button on the card | done — 2026-09-07 |
 
 **Everything buildable is built.** What is left is one gate that cannot be
 closed from a desk, one decision that belongs to the client, and three declared

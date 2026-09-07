@@ -89,6 +89,44 @@
 
 .sheet.is-open .card { transform: none; transition-duration: 300ms; }
 
+/* ── close ────────────────────────────────────────────────────
+   The Figma node has none, and until this shipped the only ways out of the
+   card were the Escape key and finishing the form. On a phone there is no
+   Escape key, and at 320px the card leaves 12px of scrim on each side, which
+   is not a tap target. tw-lp-template made the same call for the same reason.
+
+   Sticky rather than absolute, because .card is its own scroll container: the
+   button has to hold the corner however far the card is scrolled, which is
+   exactly what happens when the soft keyboard squeezes the stage.
+
+   The negative bottom margin cancels its own 44px plus the column's 24px gap,
+   so the promo header sits where it sat before this button existed -- verified
+   pixel for pixel, not assumed. */
+.card .close {
+  position: sticky;
+  top: 8px;
+  z-index: 2;
+  /* flex: none, or the scrolling column makes the button shrinkable and it
+     collapses to the height of its own glyph. */
+  flex: none;
+  align-self: flex-end;
+  margin: 0 -8px -68px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--txt-secondary);
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.card .close:hover { background: var(--surface-field); color: var(--second); }
+.card .close svg { width: 18px; height: 18px; }
+
 .card .card__step {
   display: flex;
   flex-direction: column;
@@ -557,6 +595,7 @@
    not draw a ring. Everything you can actually Tab onto must. */
 .card:focus { outline: none; }
 
+.card .close:focus-visible,
 .card .tab:focus-visible,
 .card .eye:focus-visible,
 .card .copy:focus-visible,
