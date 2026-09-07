@@ -15,3 +15,8 @@ raw/
 # document as docs/NEXT-SESSION.md, which is the version written for a reader
 # outside the project.
 am-nevoie-de-fix-whimsical-charm.md
+
+# tools/handoff.py writes the IT archive here. It is a build output of
+# committed files — reproducible in one command, and a megabyte of zip
+# nobody should be diffing.
+dist/
