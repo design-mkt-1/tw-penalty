@@ -10,6 +10,31 @@ animator interface over raster sprites, the same Pages allowlist.
 
 Live: **https://design-mkt-1.github.io/tw-penalty/**
 
+## In progress: IT platform (template v1.0.7) and the IT archive
+
+Why: IT tests this landing from a zip. The form is in demo mode today (payload
+only goes to console.info), so IT would test a form that sends nothing.
+`tw-lp-template` v1.0.7 (d243833, docs 76dfa4b, traps 167c067) adds the real
+registration path (`js/platform.js`); flip-cards `prod-sync` already ported it.
+
+Owner decisions:
+
+- Links home/login/terms/privacy/cta stay `''` (login comes from the platform SSO redirect). Never `'#'`.
+- Email only: template `css/form.css` as is; phone-tab markup removed.
+- landing_id: IT sets it in `config.json` on their server. Ship the template's `config.example.json`. `hiddenFields: {}`.
+- `platform.dev` = IT dev TEMP_CONFIG id 8, with its TEMP comment, as in template and flip-cards.
+
+Stages (each pushed to main):
+
+- [ ] 0. Plan into the repo
+- [ ] 1. Shared files from the template (platform.js, stub, test, form.css, drift, handoff, config.example, SHARED.lock, pages.yml, .gitignore)
+- [ ] 2. Form wired to the platform (index.html CSP + script tag, campaign.js form/platform blocks)
+- [ ] 3. Browser test (stub, 390x844, no CSP violations, audio, game)
+- [ ] 4. Stale text, then `python tools/handoff.py` archive check
+
+On another PC you need: tw-lp-template clone at 167c067, and tw-flip-cards-lp
+branch prod-sync 0186bc6 as reference.
+
 ## State
 
 | Stage | State |
@@ -27,6 +52,7 @@ Live: **https://design-mkt-1.github.io/tw-penalty/**
 | Composition pass | done — `df33024`, `b6ca8c7` |
 | Guards, and a close button on the card | done — 2026-09-07 |
 | Ported onto tw-lp-template | done — 2026-09-07 |
+| IT platform + handoff | in progress — see section above |
 
 **Everything buildable is built.** What is left is one gate that cannot be
 closed from a desk, one decision that belongs to the client, and three declared
