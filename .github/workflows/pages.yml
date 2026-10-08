@@ -63,6 +63,11 @@ jobs:
       - name: smoke — the page works
         run: python tools/smoke.py
 
+      # The IT platform connection, against a stub: not one real request goes to
+      # jack-pot.tech, ipify or Google. Reuses the Chromium installed above.
+      - name: platform — the registration follows the platform's flow, every language
+        run: python tools/platform_test.py
+
   build:
     needs: guards
     if: github.event_name != 'pull_request'

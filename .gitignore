@@ -20,3 +20,12 @@ am-nevoie-de-fix-whimsical-charm.md
 # committed files — reproducible in one command, and a megabyte of zip
 # nobody should be diffing.
 dist/
+
+*.pyc
+.venv/
+venv/
+_site/
+
+# The IT platform config for THIS landing (landing_id from IT). Written on the
+# server, never committed (CAMPAIGN.md step 4).
+config.json

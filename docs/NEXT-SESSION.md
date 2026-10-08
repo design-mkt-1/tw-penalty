@@ -26,7 +26,7 @@ Owner decisions:
 
 Stages (each pushed to main):
 
-- [ ] 0. Plan into the repo
+- [x] 0. Plan into the repo — `659ddd1`
 - [ ] 1. Shared files from the template (platform.js, stub, test, form.css, drift, handoff, config.example, SHARED.lock, pages.yml, .gitignore)
 - [ ] 2. Form wired to the platform (index.html CSP + script tag, campaign.js form/platform blocks)
 - [ ] 3. Browser test (stub, 390x844, no CSP violations, audio, game)

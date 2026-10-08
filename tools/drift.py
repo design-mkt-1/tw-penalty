@@ -48,10 +48,13 @@ SHARED = [
     "js/form.js",
     "js/audio.js",
     "js/shell.js",
+    "js/platform.js",
     "tools/drift.py",
     "tools/tokens.py",
     "tools/smoke.py",
     "tools/fonts.py",
+    "tools/platform_stub.py",
+    "tools/platform_test.py",
     ".github/workflows/pages.yml",
 ]
 
