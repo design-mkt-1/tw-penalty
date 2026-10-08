@@ -30,14 +30,15 @@ Stages (each pushed to main):
 - [x] 1. Shared files from the template (platform.js, stub, test, form.css, drift, handoff, config.example, SHARED.lock, pages.yml, .gitignore) — `18e5c6a`
 - [x] 2. Form wired to the platform (index.html CSP + script tag, campaign.js form/platform blocks) — `fe17dde`
 - [x] 3. Browser test (stub, 390x844 and 1440x900: payload reached the stub, SSO POST made, no console errors, no failed requests, phone tab gone; no fixes needed)
-- [ ] 4. Stale text, then `python tools/handoff.py` archive check — `047da79` did the pass; the re-check below found three things still open
+- [x] 4. Stale text, then `python tools/handoff.py` archive check — `047da79`, re-checked and closed 2026-10-08 (see below)
 
-Stage 4 re-check, 2026-10-08, on `047da79` (fixes not made yet):
+Stage 4 re-check, 2026-10-08:
 
-- The archive itself is clean. `python tools/handoff.py` -> `dist/tw-penalty-2026-10-08.zip`, 69 files, 1046 kB: no `tools/`, `docs/`, `raw/` or `campaign/smoke.py`. `python tools/drift.py` -> 19 shared files match `SHARED.lock`. Every README-IT claim checked against the code holds (five links `''`, `onRegister` -> `TWPlatform.register`, `platform.dev` id 8, `support@jack-pot.com`, `.grecaptcha-badge` in `css/form.css`, prod API origin in `connect-src`, phone tab removed by `js/platform.js`, `passthrough` list).
-- **Open 1 — `campaign.js:90-103`, form comment written before the port.** It still says `endpoint ''` "means nothing is sent", "When IT is ready they set `endpoint`" and that a `{ login, password }` response fills the confirmation screen. Now `onRegister` sends every registration to the platform and success is an SSO redirect; the confirmation screen is never shown. The comment at `campaign.js:109-112` is the true one.
-- **Open 2 — `campaign.js:128` points to `CAMPAIGN.md`, "Connect to IT".** No `CAMPAIGN.md` exists in this repo (it is a template file). Point it at README-IT section 3, or drop the reference.
-- **Open 3 — `config.example.json` is not in the IT zip.** The owner decision above says "Ship the template's `config.example.json`", but the allowlist (`.github/workflows/pages.yml:84`) does not stage it, so the zip lacks it. README-IT section 3 does show the same shape inline. Owner to say whether "ship" meant "in the repo" (done) or "in the zip" (needs `tools/handoff.py` to add it; `pages.yml` is a shared file, so not there).
+- Shared files are byte-identical to tw-lp-template `origin/main` 167c067 (`js/platform.js`, `js/form.js`, `css/form.css`, `tools/platform_*.py`, `tools/handoff.py`); `drift.py` -> 19 match `SHARED.lock`.
+- `campaign.js` form comment rewritten: it still described the pre-port demo path (`endpoint ''` "means nothing is sent"). The platform comment pointed at a `CAMPAIGN.md` this repo does not have; it now points at README-IT section 3 and `config.example.json`.
+- `config.example.json` stays out of the IT zip, as in tw-flip-cards-lp `prod-sync` 0186bc6 (its allowlist has no such file either). README-IT section 3 shows the same shape inline.
+- Tests: `drift`, `tokens`, `fonts` clean; `smoke.py` -> 2 viewports x 3 languages clean; `platform_test.py` -> 67 checks, 0 failed. A real registration from localhost is not possible (template trap 167c067: reCAPTCHA refuses localhost), so the stub test is the check.
+- Archive: `python tools/handoff.py` -> `dist/tw-penalty-<date>.zip`, 69 files, no `tools/`, `docs/`, `raw/`.
 
 On another PC you need: tw-lp-template clone at 167c067, and tw-flip-cards-lp
 branch prod-sync 0186bc6 as reference.

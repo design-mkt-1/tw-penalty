@@ -88,19 +88,14 @@ window.TW_CAMPAIGN = {
   },
 
   /* ── The registration form ────────────────────────────────────
-     endpoint '' is the shipped default and means nothing is sent: the
-     validated payload goes to console.info and, with demoDone true, the
-     confirmation screen is walked anyway. The page is fully demoable before
-     the platform exists, and it cannot silently half-ship.
+     Every registration goes to IT's platform through `onRegister` below;
+     success is an SSO redirect to the casino, so the confirmation screen is
+     not shown. Only when config.json is missing does the form fall back to
+     the demo path: the payload goes to console.info and, with demoDone true,
+     the confirmation screen is walked anyway.
 
-     When IT is ready they set `endpoint` and the form POSTs JSON to it. A
-     response carrying { login, password } fills the confirmation screen.
-     `onRegister(payload)` is the escape hatch for anything more involved; it
-     returns a promise and overrides `endpoint`.
-
-     The password is in the payload, because a registration hook without one
-     is useless — which means `endpoint` must point at the operator's own
-     TLS endpoint and nowhere else.
+     The password is in the payload, which means the registration endpoint
+     must be the operator's own TLS endpoint and nowhere else.
 
      dialFlag is an SVG file, not an emoji: Windows renders 🇺🇦 as the
      letters "UA". */
@@ -125,8 +120,8 @@ window.TW_CAMPAIGN = {
 
   /* ── The IT platform (js/platform.js) ─────────────────────────
      In production the page reads `configUrl` from its own root, one file per
-     landing, written on the server and never committed (see CAMPAIGN.md,
-     "Connect to IT"):
+     landing, written on the server and never committed (see README-IT.md in the
+     handoff zip, section 3; config.example.json has the shape):
        { "id": <number>, "email_registration": "<url>", "landing": "<url>" }
      Without that file the page is NOT connected: the form walks the demo
      confirmation screen and logs a warning to the console. Nothing on screen
