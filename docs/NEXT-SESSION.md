@@ -27,8 +27,8 @@ Owner decisions:
 Stages (each pushed to main):
 
 - [x] 0. Plan into the repo — `659ddd1`
-- [ ] 1. Shared files from the template (platform.js, stub, test, form.css, drift, handoff, config.example, SHARED.lock, pages.yml, .gitignore)
-- [ ] 2. Form wired to the platform (index.html CSP + script tag, campaign.js form/platform blocks)
+- [x] 1. Shared files from the template (platform.js, stub, test, form.css, drift, handoff, config.example, SHARED.lock, pages.yml, .gitignore) — `18e5c6a`
+- [x] 2. Form wired to the platform (index.html CSP + script tag, campaign.js form/platform blocks) — commit below, see `git log`
 - [ ] 3. Browser test (stub, 390x844, no CSP violations, audio, game)
 - [ ] 4. Stale text, then `python tools/handoff.py` archive check
 

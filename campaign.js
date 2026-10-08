@@ -3,8 +3,8 @@
    This landing is a tw-lp-template clone: the header, the footer and the
    registration card are that repo's files, unmodified, and this file is where
    the campaign speaks to them. The mechanic — the goal, the keeper, the ball,
-   the effects canvas — is js/game.js, js/animator.js, js/fx.js, js/stage.js
-   and css/game.css, and it is the only part of this repo that is this
+   the effects canvas — is campaign/main.js, animator.js, fx.js, stage.js
+   and main.css, and it is the only part of this repo that is this
    landing's own.
 
    Never edit the shared files. `python tools/drift.py` fails if one moves. A
@@ -45,7 +45,12 @@ window.TW_CAMPAIGN = {
      five were HOME_URL / LOGIN_URL / TERMS_URL / PRIVACY_URL in js/main.js
      and DESTINATION in js/form.js until the shell became shared code; the
      fifth being in a different file from the other four is exactly the kind
-     of thing that gets forgotten at handover. */
+     of thing that gets forgotten at handover.
+
+     With the platform connected, terms, privacy and login are taken from the
+     landing response (js/platform.js § applyLinks) and override the values
+     here. Set them anyway: they are what the page shows if the landing call
+     fails, and the consent links must never be empty. */
   links: {
     home:    '',
     login:   '',
@@ -67,8 +72,15 @@ window.TW_CAMPAIGN = {
      here and nowhere else. */
   passthrough: ['click_id', 'sub1', 'sub2', 'gclid', 'fbclid', 'ttclid'],
 
-  /* Both empty means not one third-party request. Setting either also needs
-     the CSP <meta> in index.html swapped for the analytics one. */
+  /* ── Analytics ────────────────────────────────────────────────
+     With the IT platform connected (js/platform.js), the analytics IDs come
+     from the landing response: GA, Yandex Metrika and GTM load from there, as
+     IT's own LP loads them, and the CSP in index.html allows those origins.
+     Leave gtmId and metaPixelId empty unless a tag is needed that IT does not
+     load, and check the console for a tag that loads twice.
+
+     debug: true logs every TW.track() call instead of needing a tag
+     assistant. */
   analytics: {
     gtmId:       '',
     metaPixelId: '',
@@ -76,19 +88,64 @@ window.TW_CAMPAIGN = {
   },
 
   /* ── The registration form ────────────────────────────────────
-     endpoint '' means nothing is sent: the validated payload goes to
-     console.info and, with demoDone true, the confirmation screen is walked
-     anyway. The payload carries the password, so `endpoint` must be the
-     operator's own TLS endpoint and nowhere else. */
+     endpoint '' is the shipped default and means nothing is sent: the
+     validated payload goes to console.info and, with demoDone true, the
+     confirmation screen is walked anyway. The page is fully demoable before
+     the platform exists, and it cannot silently half-ship.
+
+     When IT is ready they set `endpoint` and the form POSTs JSON to it. A
+     response carrying { login, password } fills the confirmation screen.
+     `onRegister(payload)` is the escape hatch for anything more involved; it
+     returns a promise and overrides `endpoint`.
+
+     The password is in the payload, because a registration hook without one
+     is useless — which means `endpoint` must point at the operator's own
+     TLS endpoint and nowhere else.
+
+     dialFlag is an SVG file, not an emoji: Windows renders 🇺🇦 as the
+     letters "UA". */
   form: {
     endpoint:     '',
-    onRegister:   null,
-    hiddenFields: { landing_id: 'tw-penalty' },
+    /* js/platform.js owns the registration: config, landing, reCAPTCHA, the
+       POST and the SSO redirect. It overrides `endpoint`, which stays empty.
+       Remove this line only if the campaign connects to a different API, and
+       then set `endpoint` (or this function) to that API instead. */
+    onRegister:   function (payload) { return window.TWPlatform.register(payload); },
+    /* landing_id is NOT here: the platform's numeric id comes from config.json
+       (or platform.dev), and a string of ours would only compete with it.
+       Anything put here is copied onto the request body BEFORE the platform's
+       own fields, so it can add a field but never overwrite one. */
+    hiddenFields: {},
     demoDone:     true,
     dialCode:     '+380',
     dialFlag:     'assets/img/icons/flag-ua.svg',
     phoneDigits:  9,
     passwordMin:  8
+  },
+
+  /* ── The IT platform (js/platform.js) ─────────────────────────
+     In production the page reads `configUrl` from its own root, one file per
+     landing, written on the server and never committed (see CAMPAIGN.md,
+     "Connect to IT"):
+       { "id": <number>, "email_registration": "<url>", "landing": "<url>" }
+     Without that file the page is NOT connected: the form walks the demo
+     confirmation screen and logs a warning to the console. Nothing on screen
+     says so, which is why the first deploy must be checked in the console.
+
+     `dev` is IT's own TEMP_CONFIG, copied from their landing
+     (_js/enums/enums.js). It is used ONLY on localhost, 127.0.0.1 or an origin
+     starting with https://land-crm, so a developer can try the page before
+     IT issues a landing_id. It never reaches a visitor on the live domain.
+
+     supportEmail is shown on the "unavailable" card; IT hardcodes it. */
+  platform: {
+    configUrl:    'config.json',
+    supportEmail: 'support@jack-pot.com',
+    dev: {
+      id: 8,
+      email_registration: 'https://api2-land-dev.jack-pot.tech/api/jp/registration/email',
+      landing:            'https://api2-land-dev.jack-pot.tech/api/jp/landing/8'
+    }
   },
 
   /* ── Languages ────────────────────────────────────────────────
@@ -152,7 +209,11 @@ window.TW_CAMPAIGN = {
       'cell.bc':    'Унизу по центру',
       'cell.br':    'Унизу праворуч',
       'msg.miss':   'Так близько! Ще спроба',
-      'msg.goal':   'ГОЛ!'
+      'msg.goal':   'ГОЛ!',
+      'pl.off.title': 'Сторінка тимчасово недоступна',
+      'pl.off.text': 'Реєстрація зараз закрита. Спробуйте пізніше або напишіть нам:',
+      'err.exists': 'Цей email уже зареєстровано. Увійдіть в акаунт',
+      'err.recaptcha': 'Не вдалося пройти перевірку безпеки. Спробуйте ще раз'
     },
     ru: {
       'title':      'Top Win — Забей пенальти и выиграй!',
@@ -166,7 +227,11 @@ window.TW_CAMPAIGN = {
       'cell.bc':    'Внизу по центру',
       'cell.br':    'Внизу справа',
       'msg.miss':   'Так близко! Ещё попытка',
-      'msg.goal':   'ГОЛ!'
+      'msg.goal':   'ГОЛ!',
+      'pl.off.title': 'Страница временно недоступна',
+      'pl.off.text': 'Регистрация сейчас закрыта. Попробуйте позже или напишите нам:',
+      'err.exists': 'Этот email уже зарегистрирован. Войдите в аккаунт',
+      'err.recaptcha': 'Не удалось пройти проверку безопасности. Попробуйте ещё раз'
     },
     en: {
       'title':      'Top Win — Score the penalty and win!',
@@ -180,7 +245,11 @@ window.TW_CAMPAIGN = {
       'cell.bc':    'Bottom centre',
       'cell.br':    'Bottom right',
       'msg.miss':   'So close! One more try',
-      'msg.goal':   'GOAL!'
+      'msg.goal':   'GOAL!',
+      'pl.off.title': 'This page is temporarily unavailable',
+      'pl.off.text': 'Registration is closed right now. Please try again later or write to us:',
+      'err.exists': 'This email is already registered. Please log in',
+      'err.recaptcha': 'The security check failed. Please try again'
     }
   }
 };
