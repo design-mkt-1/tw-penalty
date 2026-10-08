@@ -10,7 +10,7 @@ animator interface over raster sprites, the same Pages allowlist.
 
 Live: **https://design-mkt-1.github.io/tw-penalty/**
 
-## In progress: IT platform (template v1.0.7) and the IT archive
+## Done: IT platform (template v1.0.7) and the IT archive
 
 Why: IT tests this landing from a zip. The form is in demo mode today (payload
 only goes to console.info), so IT would test a form that sends nothing.
@@ -28,9 +28,9 @@ Stages (each pushed to main):
 
 - [x] 0. Plan into the repo — `659ddd1`
 - [x] 1. Shared files from the template (platform.js, stub, test, form.css, drift, handoff, config.example, SHARED.lock, pages.yml, .gitignore) — `18e5c6a`
-- [x] 2. Form wired to the platform (index.html CSP + script tag, campaign.js form/platform blocks) — commit below, see `git log`
-- [ ] 3. Browser test (stub, 390x844, no CSP violations, audio, game)
-- [ ] 4. Stale text, then `python tools/handoff.py` archive check
+- [x] 2. Form wired to the platform (index.html CSP + script tag, campaign.js form/platform blocks) — `fe17dde`
+- [x] 3. Browser test (stub, 390x844 and 1440x900: payload reached the stub, SSO POST made, no console errors, no failed requests, phone tab gone; no fixes needed)
+- [x] 4. Stale text, then `python tools/handoff.py` archive check — this commit
 
 On another PC you need: tw-lp-template clone at 167c067, and tw-flip-cards-lp
 branch prod-sync 0186bc6 as reference.
@@ -52,16 +52,16 @@ branch prod-sync 0186bc6 as reference.
 | Composition pass | done — `df33024`, `b6ca8c7` |
 | Guards, and a close button on the card | done — 2026-09-07 |
 | Ported onto tw-lp-template | done — 2026-09-07 |
-| IT platform + handoff | in progress — see section above |
+| IT platform + handoff | done — see section above |
 
 **Everything buildable is built.** What is left is one gate that cannot be
-closed from a desk, one decision that belongs to the client, and three declared
+closed from a desk, one decision that belongs to the client, and two declared
 limitations. They are at the bottom of this file.
 
 ## This landing is a template clone now
 
 The header, the footer and the registration card are `tw-lp-template`'s files,
-byte for byte — `python tools/drift.py` says 16 of 16 — and what is left here
+byte for byte — `python tools/drift.py` says 19 of 19 — and what is left here
 is the game: `campaign/main.js`, `animator.js`, `fx.js`, `stage.js` and
 `campaign/main.css`, plus `campaign.js`, which is where the offer, the five
 links, the form seam, the tracking and this campaign's own words live.
@@ -281,9 +281,9 @@ Both come from `tw-lp-template`, which was distilled out of this landing.
 `tools/tokens.py` exempts `campaign/main.css` by name: the mechanic owns the colours
 of its own effects, exactly as a campaign's `campaign/main.css` goes unscanned
 in the template. Everything brand or chrome in `game.css` was routed onto the
-semantic layer on 2026-09-07. `tools/drift.py` and `tools/smoke.py` are
-deliberately absent — the first compares against a lock whose files this repo
-predates, the second names a shell this landing does not have.
+semantic layer on 2026-09-07. `tools/drift.py` (19 of 19 shared files),
+`tools/smoke.py` and `tools/platform_test.py` (67 checks against a stub) are
+all present and pass; CI runs them.
 
 Then serve locally on a deliberately chosen port — the reference project lost
 two verification passes to an unrelated API already holding 8000:
@@ -328,15 +328,15 @@ now, which also turned a 17px tap target into 47); five texts under WCAG AA,
 including the CTA at 3.44:1, all now over 4.5; `role="tab"` wired to real
 tabpanels; every target at or over 24px; and a single `<h1>`. Clean on the rest:
 no duplicate ids, no dangling `aria-*`, no positive `tabindex`, complete i18n
-coverage, zero third-party requests, no console errors.
+coverage, zero third-party requests without config.json (connected, the platform makes its own), no console errors.
 
 **One decision for the client.** A first visit honours the browser's language
 before falling back to Ukrainian, which is the behaviour this file's `detect()`
 already had. In the target market that lands on UA or RU either way; on an
 English browser the page opens in English. Forcing UA regardless is two lines.
 
-**Declared limitations, not defects.** There is no `favicon.ico`; it 404s in the
-console, inherited. The English copy is written in-house and has not been read
+**Declared limitations, not defects.** The favicon is the square brand mark
+(`6d41269`), so the browser no longer asks for `/favicon.ico`. The English copy is written in-house and has not been read
 by a native speaker. The Russian half of the card was **written, not
 transcribed** — the design carries fourteen Registration Form variants and every
 one of them is Ukrainian.

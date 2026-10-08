@@ -8,7 +8,7 @@ request reaches a third party.
   pay-tether.svg      24 x 24
   pay-bitcoin.svg     24 x 24
 
-The sizes are the design's own and are set explicitly in css/footer.css rather
+The sizes are the design's own and are set explicitly in css/shell.css rather
 than being left to a single shared rule: the four marks have three different
 aspect ratios, and one rule that fits the Visa wordmark stretches the round
 ones.
