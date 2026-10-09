@@ -71,17 +71,21 @@ domain or from a subfolder without an edit.
 `campaign.js` -> `links`. Each one is a URL or an empty string:
 
     home     the header logo
-    login    "Already have an account? Log in"
-    terms    the consent sentence, first link      <- BLOCKS GO-LIVE
-    privacy  the consent sentence, second link     <- BLOCKS GO-LIVE
+    login    "Already have an account? Log in"     <- from the platform
+    terms    the consent sentence, first link      <- from the platform
+    privacy  the consent sentence, second link     <- from the platform
     cta      the "GO TO WEBSITE" button on the confirmation screen
 
 An empty string leaves the anchor with NO href, so it is not a link at all: no
 tab stop, nothing announced, nothing to click. **Do not write `"#"`.**
 
-`terms` and `privacy` block go-live because the page collects an 18+ consent.
-Dead consent links on a gambling registration form are a compliance problem,
-not a cosmetic one.
+**Terms, Privacy and Login come from the platform; you do nothing for them.**
+With the platform connected, `js/platform.js` (`applyLinks`) sets them from
+your landing response, `rules`, `policy` and `login`, on every load and again on
+every language switch. The values in `campaign.js` are only a fallback for when
+the landing call fails. Check on the live URL that the two consent links in the
+form open your Terms and Privacy pages: the page collects an 18+ consent, so
+they must not be dead.
 
 ## 2. The form
 
@@ -116,7 +120,9 @@ IT's own TLS endpoint and nowhere else.
          receivePromos: true, clientIp, "g-recaptcha-response",
          ...URL params from the whitelist in campaign.js § passthrough }}
 
-   `language` is `uk`, `ru` or `en`. The URL params are spread FIRST, so a
+   `language` is `uk`, `ru` or `en`. `promocode` is the one your landing
+   response returns: the promo code is set by you, on the landing in your CRM,
+   and nowhere in this archive. The URL params are spread FIRST, so a
    parameter called `email` or `landing_id` cannot overwrite the real field.
 3. Success: `response.data.accessToken` and `response.data.redirectUrl` come
    back. The token is POSTed to `<mirror>/api/welcome` as `tmpToken`, where
@@ -133,8 +139,11 @@ IT's own TLS endpoint and nowhere else.
 `campaign.js` -> `platform.dev`, IT's own test landing (id 8). It never reaches
 a visitor on the live domain.
 
-**Production.** The page fetches `config.json` from the site root, one file
-per landing, with the id IT gives THIS landing:
+**Production.** The page fetches `config.json` from next to `index.html` (in
+the same folder as the page), one file per landing, with the id IT gives THIS
+landing. The path is relative, so this holds on subfolder hosting too: a page
+at `/promo/index.html` reads `/promo/config.json`, never a
+`config.json` at the domain root.
 
     {{ "id": <the landing_id IT gave you>,
       "email_registration": "https://<api host>/api/jp/registration/email",
@@ -157,11 +166,21 @@ only the id IT gives this landing.
 2. **The reCAPTCHA v3 key** (`recaptcha_key` in the landing response) must be
    registered for THIS page's domain with Google.
 3. **The Content-Security-Policy `<meta>` in `index.html`.** A CSP refusal shows
-   ONLY in the browser console; the visitor sees nothing. Add
-   `form-action 'self' https://<casino domain>` for the `/api/welcome` POST. The
-   directive is absent today because that domain comes from the API at runtime
-   and could not be written here. The production API origin is already in
-   `connect-src`.
+   ONLY in the browser console; the visitor sees nothing. The production API
+   origin is already in `connect-src`. There is no `form-action` directive, so
+   the `/api/welcome` hand-off is not restricted and you need to add nothing.
+   If you do add `form-action`, it must allow the origin the page actually
+   POSTs to, which is decided at runtime (step 3 above):
+   - the origin of the `redirectUrl` your REGISTRATION response returns. For
+     TopWin that is the tracker mirror, e.g. `https://<mirror host>`, not the
+     casino domain;
+   - only when that response has no `redirectUrl`: the origin of `rules` in
+     your LANDING response.
+   So write `form-action 'self' https://<the origin your registration API puts
+   in redirectUrl>`, and add the `rules` origin too if any of your responses can
+   come back without `redirectUrl`. Allow only the casino domain while your
+   API returns a mirror `redirectUrl`, and the visitor registers, then stays on
+   the page with no error.
 4. **Confirm with IT, because the flow has not been tested against every
    landing:**
    - the registration endpoint accepts `language: "uk"` and `"ru"`;
@@ -208,9 +227,9 @@ open -- that one is a hard fail, not a degradation.
 
 ## 7. What is NOT in this archive
 
-The four guards in `tools/`, the docs and any source art. They are development
-files and have no business on a public URL. The repository is the place for
-them: {repo}
+The guards and tools in `tools/`, the docs and any source art. They are
+development files and have no business on a public URL. The repository is the
+place for them: {repo}
 """
 
 

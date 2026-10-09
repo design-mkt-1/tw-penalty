@@ -27,30 +27,31 @@ window.TW_CAMPAIGN = {
      interpolates {percent} {amount} {currency} {spins}.
 
      No `hero` key: with a percent present the shell leads with it, which is
-     what this landing has always done. */
+     what this landing has always done.
+
+     No `code` key: the promo code is IT's. They set it on their CRM landing,
+     and js/platform.js sends it as `promocode` from the landing response.
+     offer.code would only reach js/form.js § payload() as `bonus`, which
+     leaves the page only off the platform; form.js reads a missing key as ''. */
   offer: {
     percent:  '225%',
     amount:   '15000',
     currency: 'UAH',
-    spins:    '',
-    code:     'PENALTY225'   // what the platform is told; payload field `bonus`
+    spins:    ''
   },
 
   /* ── Where the buttons go ─────────────────────────────────────
      '' leaves the anchor with NO href, so it is not a link at all: no tab
      stop, nothing announced, nothing to click. Never write '#'.
 
-     terms and privacy BLOCK GO-LIVE — the card collects an 18+ consent, and
-     consent text with no documents behind it is a compliance problem. These
-     five were HOME_URL / LOGIN_URL / TERMS_URL / PRIVACY_URL in js/main.js
-     and DESTINATION in js/form.js until the shell became shared code; the
-     fifth being in a different file from the other four is exactly the kind
-     of thing that gets forgotten at handover.
-
-     With the platform connected, terms, privacy and login are taken from the
-     landing response (js/platform.js § applyLinks) and override the values
-     here. Set them anyway: they are what the page shows if the landing call
-     fails, and the consent links must never be empty. */
+     All five stay '' (owner's decision). terms, privacy and login come from
+     IT's landing response (`rules`, `policy`, `login`; js/platform.js §
+     applyLinks), set on every load and again on every language switch; IT
+     does nothing for them. The values here are only a fallback for when the
+     landing call fails, and '' then leaves the anchor without an href. home
+     is the header logo and stays not a link. cta is the confirmation
+     screen's button, which the platform path never shows: the visitor goes
+     through the SSO hand-off instead. */
   links: {
     home:    '',
     login:   '',

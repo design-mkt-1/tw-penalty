@@ -27,10 +27,13 @@
      connect-src allows the TopWin production API and the Jackpot dev API,
      used only on localhost / land-crm (campaign.js § platform.dev).
 
-     form-action is still absent, on purpose: the SSO hand-off POSTs to the
-     casino's domain, which comes from the API (data.rules) at runtime and is
-     not knowable here. Once IT names it, add `form-action 'self' https://<it>`
-     -- a wrong value would block the redirect silently.
+     form-action is still absent, on purpose, so the SSO hand-off is not
+     restricted. It POSTs to the origin of the redirectUrl that the
+     registration response returns (for TopWin, the tracker mirror), or to the
+     host of the landing's data.rules when there is no redirectUrl. Both come
+     from the API at runtime and are not knowable here. If you add
+     `form-action 'self' https://<that origin>`, allow exactly that origin, not
+     the casino domain -- a wrong value would block the redirect silently.
 
      style-src carries 'unsafe-inline' for two real reasons, not laziness: the
      noscript fallback near the end of this head is an inline style block, and

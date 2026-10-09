@@ -333,7 +333,7 @@ def main():
             r.ctx.unroute_all(behavior='ignoreErrors')   # let go of the request left hanging
             r.close()
 
-            # ── production: config.json is fetched from the site root ──
+            # ── production: config.json is fetched from next to index.html ──
             def prod(config, **state):
                 r = Run(browser, base, **state)
 

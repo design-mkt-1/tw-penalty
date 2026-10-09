@@ -12,8 +12,9 @@
    ── The flow ─────────────────────────────────────────────────
    1. config.   Development (localhost, 127.0.0.1, or an origin containing
                 https://land-crm) uses campaign.js § platform.dev, which is IT's
-                TEMP_CONFIG. Everywhere else config.json is fetched from the
-                site root: { id, email_registration, landing }.
+                TEMP_CONFIG. Everywhere else config.json is fetched from next
+                to index.html (a relative path, so on subfolder hosting too):
+                { id, email_registration, landing }.
    2. landing.  GET config.landing -> { data: { active, recaptcha_key, country,
                 currency, promocode, rules, policy, login, redirect_link } }.
                 active false: the "unavailable" card, and nothing else happens.
