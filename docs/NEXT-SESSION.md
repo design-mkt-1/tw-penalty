@@ -40,7 +40,28 @@ Stage 4 re-check, 2026-10-08:
 - Tests: `drift`, `tokens`, `fonts` clean; `smoke.py` -> 2 viewports x 3 languages clean; `platform_test.py` -> 67 checks, 0 failed. A real registration from localhost is not possible (template trap 167c067: reCAPTCHA refuses localhost), so the stub test is the check.
 - Archive: `python tools/handoff.py` -> `dist/tw-penalty-<date>.zip`, 69 files, no `tools/`, `docs/`, `raw/`.
 
-On another PC you need: tw-lp-template clone at 167c067, and tw-flip-cards-lp
+IT README fixes, 2026-10-09 (acting on the 2026-10-09 IT archive audit):
+
+- tw-lp-template `732152e` (v1.0.8): README-IT, written by `tools/handoff.py`,
+  now says (1) the CSP `form-action`, if IT adds one, must allow the origin of
+  the registration response's `redirectUrl` (TopWin: the tracker mirror), not
+  the casino domain; (2) `config.json` sits next to `index.html`, also on
+  subfolder hosting, not at the site root; (3) terms/privacy/login come from
+  the platform and IT does nothing for them, `campaign.js` is only a fallback;
+  (4) no guard count; (5) the promo code is set by IT on their CRM landing.
+  The same corrections in the template's comments and docs.
+- tw-penalty `e43f40f`: those shared files copied byte-identical (drift 19
+  match); `offer.code: 'PENALTY225'` deleted (we invented it in `e59cda2`, the
+  client never asked; `js/platform.js` never sent it, `js/form.js` reads a
+  missing key as `''`); the links comment rewritten; the CSP comment in
+  `index.html` names the `redirectUrl` origin.
+- Archive rebuilt: `dist/tw-penalty-2026-10-09.zip`, 69 files, same list as
+  before. Unzipped copy, headed Playwright with the stub, 390x844 and
+  1440x900: registration reached the stub with `promocode` from the landing,
+  SSO POST made, 0 console errors, 0 failed requests, no `PENALTY225`
+  anywhere.
+
+On another PC you need: tw-lp-template clone at 732152e, and tw-flip-cards-lp
 branch prod-sync 0186bc6 as reference.
 
 ## State
@@ -316,6 +337,16 @@ failed`; the unfilled seams taking no focus and drawing no underline; and on
 the live URL, `tools/`, `docs/`, `raw/` and `.gitignore` all 404.
 
 ## What is left
+
+**Open, blocks go-live: is land-crm where real visitors land?**
+`js/platform.js § isDevelopment()` treats every origin starting with
+`https://land-crm` as IT's dev host. There it ignores `config.json` and posts
+registrations to the dev API (`api2-land-dev.jack-pot.tech`, landing 8). The
+owner says this landing will be published on land-crm. If real visitors land
+there, every registration goes to IT's test landing, with no visible error.
+Asked IT whether land-crm is production or only staging; the code is left
+alone until they answer. The same code is in tw-flip-cards-lp, so the answer
+applies there too, and a fix belongs in tw-lp-template (shared file).
 
 **The acceptance gate, and the only one that cannot be closed from a desk.**
 iOS Safari and Android Chrome on the live URL: no rubber-band on vertical drag,
