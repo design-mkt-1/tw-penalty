@@ -58,10 +58,11 @@ def allowlist():
 README = """# {name} — for whoever hosts this
 
 A static landing page. No build step, no server-side code, no runtime
-dependency. It talks to exactly one platform, IT's registration API, through
-`js/platform.js`, and to the origins listed in the Content-Security-Policy
-`<meta>` in `index.html`, and to nothing else. Upload the contents of this
-archive to any web server or object store and open `index.html`.
+dependency. It talks to one platform, IT's registration API, through
+`js/platform.js`, exactly as IT's own template does. There is no
+Content-Security-Policy `<meta>` in `index.html`: IT's template has none, and
+this page follows it. Upload the contents of this archive to any web server or
+object store and open `index.html`.
 
 Everything is referenced with RELATIVE paths, so it runs from the root of a
 domain or from a subfolder without an edit.
@@ -105,36 +106,44 @@ IT's own TLS endpoint and nowhere else.
 
 ## 3. The platform connection -- WHAT WE NEED FROM YOU
 
-`js/platform.js` follows IT's reference landing step for step. Its flow:
+`js/platform.js` is IT's template connection (your `_js/main.js`), step for
+step: the same requests, headers, order and body. Its flow:
 
-1. `GET config.landing` on every load, with `Content-Type` and `Accept:
-   application/json`. `data.active` false -> a "temporarily unavailable" card
-   in UA / RU / EN, and nothing else works. It shows `platform.supportEmail`
-   from `campaign.js`: TopWin's support address is **support@top-win.com**
-   (a mailto link under the sentence "...or write to us:"). If that value is
+1. `config.json` (below), then `GET config.landing` with `Content-Type` and
+   `Accept: application/json`. Analytics come from the landing response.
+   `data.active` false -> a "temporarily unavailable" card in UA / RU / EN,
+   and nothing else works. It shows `platform.supportEmail` from
+   `campaign.js`: TopWin's support address is **support@top-win.com** (a
+   mailto link under the sentence "...or write to us:"). If that value is
    ever emptied, the card carries no address.
-   Otherwise the Terms / Privacy / Login links come from `rules` / `policy` /
-   `login`, analytics come from the landing response, and reCAPTCHA v3 loads
-   with `data.recaptcha_key`.
-2. Submit: reCAPTCHA token (action `register`), the visitor's IP from
-   `api.ipify.org`, then `POST config.email_registration`:
+   Otherwise reCAPTCHA v3 loads (`api.js?render=<recaptcha_key>`) and the
+   Terms / Privacy / Login links are set to `rules` / `policy` / `login` as
+   your API returns them, with the page's query string appended, as your
+   template does (no host filter).
+2. `GET https://api.ipify.org?format=json` once at page load; the IP is kept.
+3. Submit: `grecaptcha.execute(recaptcha_key, {{action: "register"}})`, then
+   `POST config.email_registration` with `Content-Type: application/json`:
 
        {{ email, password, landing_id, language, currency, country, promocode,
-         receivePromos: true, clientIp, "g-recaptcha-response",
-         ...URL params from the whitelist in campaign.js § passthrough }}
+         receivePromos: true, clientIp, ...every URL parameter,
+         "g-recaptcha-response" }}
 
-   `language` is `uk`, `ru` or `en`. `promocode` is the one your landing
-   response returns: the promo code is set by you, on the landing in your CRM,
-   and nowhere in this archive. The URL params are spread FIRST, so a
-   parameter called `email` or `landing_id` cannot overwrite the real field.
-3. Success: `response.data.accessToken` and `response.data.redirectUrl` come
+   exactly as your template builds it: every parameter on the page URL is
+   spread LAST, so one named like a field overwrites it, as on your page.
+   `language` is the active language button lowercased, as in your template:
+   `ua`, `ru` or `en`. `promocode` is the one your landing response returns:
+   the promo code is set by you, on the landing in your CRM, and nowhere in
+   this archive.
+4. Success -- PENDING YOUR ANSWER: which hand-off is right for TopWin? Today:
+   `response.data.accessToken` and `response.data.redirectUrl` come
    back. The token is POSTed to `<mirror>/api/welcome` as `tmpToken`, where
    `<mirror>` is the origin of `redirectUrl`, with `redirect` = `redirectUrl`
    plus the page's query string. Without `redirectUrl` the fallback is
    `<casino>/api/welcome`, with `redirect=<casino>/<lang>/<redirect_link>?<page
    query>`, where `<casino>` is the host of `data.rules`. The confirmation
-   screen that shows a login and a password is never shown.
-4. Errors: `{{ errors: [msg] }}`. "already registered" and anything mentioning
+   screen that shows a login and a password is never shown. Your template
+   has only the fallback path, behind a button the visitor clicks.
+5. Errors: `{{ errors: [msg] }}`. "already registered" and anything mentioning
    reCAPTCHA get their own translated message; everything else is the generic
    "could not send".
 
@@ -170,27 +179,17 @@ only the id IT gives this landing.
    preflight) and a JSON `POST`.
 2. **The reCAPTCHA v3 key** (`recaptcha_key` in the landing response) must be
    registered for THIS page's domain with Google.
-3. **The Content-Security-Policy `<meta>` in `index.html`.** A CSP refusal shows
-   ONLY in the browser console; the visitor sees nothing. The production API
-   origin is already in `connect-src`. There is no `form-action` directive, so
-   the `/api/welcome` hand-off is not restricted and you need to add nothing.
-   If you do add `form-action`, it must allow the origin the page actually
-   POSTs to, which is decided at runtime (step 3 above):
-   - the origin of the `redirectUrl` your REGISTRATION response returns. For
-     TopWin that is the tracker mirror, e.g. `https://<mirror host>`, not the
-     casino domain;
-   - only when that response has no `redirectUrl`: the origin of `rules` in
-     your LANDING response.
-   So write `form-action 'self' https://<the origin your registration API puts
-   in redirectUrl>`, and add the `rules` origin too if any of your responses can
-   come back without `redirectUrl`. Allow only the casino domain while your
-   API returns a mirror `redirectUrl`, and the visitor registers, then stays on
-   the page with no error.
-4. **Confirm with IT, because the flow has not been tested against every
-   landing:**
-   - the registration endpoint accepts `language: "uk"` and `"ru"`;
-   - the casino site has `/uk/` and `/ru/` routes for the redirect, and what
-     `redirect_link` should be.
+3. **No Content-Security-Policy.** `index.html` has none, as your template has
+   none. If your server adds one as a header, it must allow everything above:
+   your API, `api.ipify.org`, `www.google.com/recaptcha/` +
+   `www.gstatic.com/recaptcha/`, the analytics hosts, and the `/api/welcome`
+   origin of step 4.
+4. **Confirm, because the flow has not been tested against every landing:**
+   - the registration endpoint accepts `language: "ua"`, `"ru"` and `"en"`
+     (your template's rule: the language button lowercased);
+   - the casino site has `/ua/`, `/ru/` and `/en/` routes for the fallback
+     redirect, and what `redirect_link` should be;
+   - which SSO hand-off is right (step 4).
 5. **The reCAPTCHA v3 badge is hidden** (`.grecaptcha-badge` in `css/form.css`),
    as IT's LP does it. The `clientIp` from `api.ipify.org` is sent too, as IT's
    LP does it.
@@ -214,9 +213,7 @@ Analytics. With the platform connected, Google Analytics, Yandex Metrika and
 Google Tag Manager come from the landing response, loaded by `js/platform.js`.
 `analytics.gtmId` and `analytics.metaPixelId` in `campaign.js` are still read
 by `js/shell.js`: set one only if IT does not already load that tag, or it
-loads twice. The Content-Security-Policy `<meta>` in `index.html` has no Meta
-origin, so `metaPixelId` will be refused. A CSP refusal appears only in the
-console: the page looks fine and silently sends nothing.
+loads twice.
 
 ## 5. Languages
 

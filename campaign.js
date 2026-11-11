@@ -76,7 +76,7 @@ window.TW_CAMPAIGN = {
   /* ── Analytics ────────────────────────────────────────────────
      With the IT platform connected (js/platform.js), the analytics IDs come
      from the landing response: GA, Yandex Metrika and GTM load from there, as
-     IT's own LP loads them, and the CSP in index.html allows those origins.
+     IT's own LP loads them. index.html has no CSP (as IT's has none).
      Leave gtmId and metaPixelId empty unless a tag is needed that IT does not
      load, and check the console for a tag that loads twice.
 
@@ -109,8 +109,9 @@ window.TW_CAMPAIGN = {
     onRegister:   function (payload) { return window.TWPlatform.register(payload); },
     /* landing_id is NOT here: the platform's numeric id comes from config.json
        (or platform.dev), and a string of ours would only compete with it.
-       Anything put here is copied onto the request body BEFORE the platform's
-       own fields, so it can add a field but never overwrite one. */
+       Nothing put here reaches IT: js/platform.js builds IT's body exactly as
+       IT's template does, and IT's template has no hidden fields (owner,
+       2026-11-11). Only the endpoint path off the platform reads this. */
     hiddenFields: {},
     demoDone:     true,
     dialCode:     '+380',
@@ -133,7 +134,9 @@ window.TW_CAMPAIGN = {
      ONLY on localhost, 127.0.0.1 or an origin starting with https://land-crm,
      and only when all three are set. While they are empty, localhost runs
      the demo path (no request) and land-crm reads config.json. Never put
-     another brand's landing here (topwin-lp skill, decision 21).
+     another brand's landing here (topwin-lp skill, decision 21; IT's own
+     template ships another brand's dev landing, which is exactly what must not
+     be copied).
 
      supportEmail is shown on the "unavailable" card: support@top-win.com
      (owner, 2026-11-11). If it is ever emptied, the card shows no address
