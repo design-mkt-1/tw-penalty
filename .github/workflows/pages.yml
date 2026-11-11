@@ -48,6 +48,11 @@ jobs:
       - name: drift — the shared files are unchanged
         run: python tools/drift.py
 
+      # TopWin and IT's other casino brand are separate projects. No tracked
+      # file may name that brand, its domains or its dev landing (decision 21).
+      - name: brands — no file names the other brand
+        run: python tools/brands.py
+
       # Colours live in css/tokens.css and nowhere else. This is the guard that
       # would have caught every colour divergence in this project's history.
       - name: tokens — no colour literal outside tokens.css
@@ -64,7 +69,7 @@ jobs:
         run: python tools/smoke.py
 
       # The IT platform connection, against a stub: not one real request goes to
-      # jack-pot.tech, ipify or Google. Reuses the Chromium installed above.
+      # the platform API, ipify or Google. Reuses the Chromium installed above.
       - name: platform — the registration follows the platform's flow, every language
         run: python tools/platform_test.py
 

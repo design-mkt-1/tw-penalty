@@ -55,6 +55,7 @@ SHARED = [
     "tools/fonts.py",
     "tools/platform_stub.py",
     "tools/platform_test.py",
+    "tools/brands.py",
     ".github/workflows/pages.yml",
 ]
 

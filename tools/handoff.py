@@ -109,7 +109,9 @@ IT's own TLS endpoint and nowhere else.
 
 1. `GET config.landing` on every load, with `Content-Type` and `Accept:
    application/json`. `data.active` false -> a "temporarily unavailable" card
-   with `support@jack-pot.com`, in UA / RU / EN, and nothing else works.
+   in UA / RU / EN, and nothing else works. It shows `platform.supportEmail`
+   from `campaign.js`, which is EMPTY until you give us TopWin's support
+   address; while empty the card carries no address.
    Otherwise the Terms / Privacy / Login links come from `rules` / `policy` /
    `login`, analytics come from the landing response, and reCAPTCHA v3 loads
    with `data.recaptcha_key`.
@@ -136,8 +138,10 @@ IT's own TLS endpoint and nowhere else.
    "could not send".
 
 **Development.** On localhost, 127.0.0.1 or `https://land-crm...` the page uses
-`campaign.js` -> `platform.dev`, IT's own test landing (id 8). It never reaches
-a visitor on the live domain.
+`campaign.js` -> `platform.dev` once it holds a TopWin dev landing. It is
+EMPTY: please give us a TopWin dev landing (id, landing URL, registration
+URL). Until then localhost runs the demo path and land-crm reads
+`config.json`. It never reaches a visitor on the live domain.
 
 **Production.** The page fetches `config.json` from next to `index.html` (in
 the same folder as the page), one file per landing, with the id IT gives THIS

@@ -341,7 +341,10 @@ the live URL, `tools/`, `docs/`, `raw/` and `.gitignore` all 404.
 **Open, blocks go-live: is land-crm where real visitors land?**
 `js/platform.js § isDevelopment()` treats every origin starting with
 `https://land-crm` as IT's dev host. There it ignores `config.json` and posts
-registrations to the dev API (`api2-land-dev.jack-pot.tech`, landing 8). The
+registrations to the dev API (IT's dev landing 8, which belonged to IT's other
+casino brand; removed on 2026-11-11, template v1.0.16: `platform.dev` is now
+empty, so land-crm reads `config.json` like production until IT issues a
+TopWin dev landing). The
 owner says this landing will be published on land-crm. If real visitors land
 there, every registration goes to IT's test landing, with no visible error.
 Asked IT whether land-crm is production or only staging; the code is left
