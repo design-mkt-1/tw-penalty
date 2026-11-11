@@ -119,15 +119,17 @@
   }
 
   /* The landing API hands us links that go on the page. Only TopWin's own
-     hosts are accepted: top-win.<tld> or topwin.<tld> and their subdomains,
-     and the tracker twredirect.com. Anything else is skipped with a warning,
+     hosts are accepted: a domain whose name starts with topwin or top-win
+     (topwin-bet.club, which the live API returns for landings 12 and 13;
+     top-win.promo) and its subdomains, and the tracker twredirect.com. One
+     TLD only, so topwin.evil.com is refused. Anything else is skipped with a warning,
      so a wrong landing behind the API cannot send visitors to another brand. */
   function isTopWinUrl(href) {
     var u;
     try { u = new URL(href); } catch (e) { return false; }
     if (u.protocol !== 'https:') return false;
     var h = u.hostname.toLowerCase();
-    return /(^|\.)top-?win\.[a-z]{2,}(\.[a-z]{2,})?$/.test(h) ||
+    return /(^|\.)top-?win[a-z0-9-]*\.[a-z]{2,}$/.test(h) ||
            /(^|\.)twredirect\.com$/.test(h);
   }
 

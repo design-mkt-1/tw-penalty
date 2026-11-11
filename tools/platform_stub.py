@@ -21,9 +21,9 @@ APIS = (PROD_API,)
 DEV = {'id': 7,
        'email_registration': API + '/api/jp/registration/email',
        'landing': API + '/api/jp/landing/7'}
-# TopWin-shaped (js/platform.js only applies links on a TopWin host) and on the
-# reserved .test TLD, so it can never resolve.
-CASINO = 'https://casino.top-win.test'
+# TopWin-shaped like the live casino host topwin-bet.club (js/platform.js only
+# applies links on a TopWin host), on the reserved .test TLD so it never resolves.
+CASINO = 'https://casino.topwin-bet.test'
 # A host that is not TopWin's: the landing's links on it must be skipped.
 FOREIGN = 'https://casino.example.invalid'
 # The tracker mirror TopWin returns as redirectUrl. Its /api/welcome is answered like the casino's.
