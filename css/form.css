@@ -408,6 +408,11 @@
 .tw-input input {
   flex: 1 0 0;
   min-width: 0;
+  /* Fill the 48px shell. Left at its own line height the input is 19px tall
+     inside a label that looks 48 -- a hit area that works only because the
+     label forwards the click, and a box that fails the 24px measurement
+     (decision 18) whenever it is taken. The text stays centred. */
+  align-self: stretch;
   border: 0;
   background: none;
   outline: none;
@@ -455,16 +460,19 @@
   display: grid;
   place-items: center;
   flex: none;
-  width: 20px;
-  height: 20px;
+  /* 24 is the measured box (decision 18); the -2px margin hands back the 2px
+     each side, so the field lays out exactly as it did at 20. */
+  width: 24px;
+  height: 24px;
+  margin: -2px;
   padding: 0;
   border: 0;
   background: none;
   transition: opacity 160ms ease;
 }
 
-/* The icon stays 20px, the target becomes 44. It overhangs the field's right
-   padding, which holds nothing else. */
+/* The icon stays 20px, the touch target becomes 48 (24 box + the overhang). It
+   overhangs the field's right padding, which holds nothing else. */
 .tw-eye::before {
   content: "";
   position: absolute;
@@ -580,6 +588,9 @@
   /* v1.0.22: a link that wraps leaves its last word alone on a line, 22px wide
      under the 24px target. */
   white-space: nowrap;
+  /* Vertical padding on an inline box widens the hit area and the measured
+     box without touching the line height: 15px of text becomes 25. */
+  padding-block: 5px;
 }
 
 
@@ -628,7 +639,24 @@
   font-weight: var(--fw-bold);
 }
 
-.tw-foot a[href] { text-decoration: underline; }
+.tw-foot a[href] {
+  text-decoration: underline;
+  padding-block: 5px;   /* hit area >= 24px, line height unchanged */
+}
+
+/* The mailto on the "unavailable" card (js/platform.js). 19px tall on its own.
+   It is a flex item and the card's focus ring sits on it the moment the card
+   opens, so neither padding (grows the card) nor a margin trick (grows the
+   ring) is invisible here: a pseudo-element widens only the hit area, 3px on
+   every side. The browser's ring encloses the pseudo-element too, so it is
+   pulled back (-2px, measured: pixel-identical to the old ring). */
+.pl-off__mail { position: relative; }
+.pl-off__mail::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+}
+.pl-off__mail:focus-visible { outline-offset: -2px; }
 
 
 /* ══ registration complete ════════════════════════════════════
