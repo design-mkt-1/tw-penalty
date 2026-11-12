@@ -20,7 +20,6 @@ calls it once per viewport per language.
 
 import functools
 import http.server
-import json
 import socketserver
 import sys
 import threading
@@ -70,23 +69,6 @@ def languages():
     chunk = text[start:text.find("]", start)]
     return [bit.strip().strip("'\"") for bit in chunk.split("[")[1].split(",") if bit.strip()]
 
-
-# Read by the page as TW_CAMPAIGN is assigned, exactly as tools/platform_test.py
-# does it: the platform runs against the stub, never against the real API.
-# campaign.js ships IT's TEMP_CONFIG as platform.dev (decision 24), a real host:
-# EVERY context here replaces it, either with the stub's (run_platform) or with
-# an empty one, which is the demo path with no request (the plain run), and
-# every context is routed through the stub so anything else that leaves the
-# page is aborted and fails the run.
-INJECT = '''(() => {
-  const over = %s;
-  let c;
-  Object.defineProperty(window, 'TW_CAMPAIGN', {
-    configurable: true,
-    get() { return c; },
-    set(v) { c = v; if (v) { v.platform = Object.assign(v.platform || {}, over); } }
-  });
-})();'''
 
 # Decision 18: every control has a hit area of at least 24x24 CSS px. The hit
 # area is the element's own box, or -- where the visible control is smaller and
@@ -199,9 +181,11 @@ def run_page(page, where, lang, fails):
     # 6. No dead links. An unset seam leaves NO href; href="#" is a control
     #    that takes focus, is announced as a link and then does nothing.
     dead = page.evaluate("""() => [...document.querySelectorAll('a[href]')]
-        .filter(a => { const h = a.getAttribute('href'); return !h || h === '#'; })
+        .filter(a => { const h = a.getAttribute('href'); return (!h || h === '#') && !a.classList.contains('mail-link'); })
         .map(a => a.className || a.textContent.trim().slice(0, 24))""")
     fails.check(not dead, f"{tag} dead link(s) with href=\"#\": {', '.join(dead)}")
+    if page.locator("a.mail-link[href=\"#\"]").count():
+        KNOWN_IT.append('IT markup: <a class="mail-link" href="#"> in the page-disabled modal (main.js fills it only when the landing is off)')
 
     # 7. The dialog works: opens, takes focus, Escape closes it, focus returns.
     page.evaluate("TW.openForm()")
@@ -244,63 +228,89 @@ def run_page(page, where, lang, fails):
     tap_targets(page, tag, "the page", fails)
 
 
+# Known deviations of IT's own markup / CSS from this template's checks
+# (decision 25: IT's code is copied 1:1 and is NOT fixed here). They are
+# measured and printed, never failed, so the day IT fixes one it shows up as
+# gone and a NEW offender still fails the run.
+KNOWN_IT = []
+
+
+def tap_targets_it(page, tag, what, fails, root, expected):
+    """tap_targets for IT's markup: the entries in `expected` are IT's known
+    deviations (listed, not failed); anything else still fails."""
+    small = page.evaluate(TAP_TARGETS, root)
+    known = [s for s in small if any(e in s for e in expected)]
+    new = [s for s in small if s not in known]
+    for s in known:
+        KNOWN_IT.append(f"{tag} {what}: {s}")
+    fails.check(not new, f"{tag} tap target(s) under 24px in {what}: {'; '.join(new)}")
+
+
 def run_platform(browser, base, where, w, h, langs, fails):
-    """The shell as the platform fills it in, against the stub: not one real
-    request. Two states the plain run cannot reach -- the Terms / Privacy / Login
-    links, which exist only once the landing response supplies them, and the
-    "unavailable" card of an inactive landing."""
+    """The shell as IT's registration code fills it in, against the stub: not
+    one real request. The states the plain run cannot reach -- the Terms /
+    Privacy / Login links, which exist only once the landing response supplies
+    them, IT's success and reCAPTCHA modals, and IT's page-disabled modal."""
     def context(**state):
         ctx = browser.new_context(viewport={"width": w, "height": h})
-        ctx.add_init_script(INJECT % json.dumps({"dev": stubmod.DEV}))
-        stubmod.install(ctx, stubmod.new_state(**state), [base])
-        return ctx
+        st = stubmod.new_state(**state)
+        stubmod.install(ctx, st, [base])
+        return ctx, st
+
+    def fits(page, sel):
+        return page.evaluate("""(sel) => {
+            const r = document.querySelector(sel).getBoundingClientRect();
+            return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }""", sel)
 
     lang = langs[0]
     tag = f"[{where} {lang} platform]"
-    ctx = context()
+    ctx, st = context()
     page = ctx.new_page()
     page.goto(f"{base}/index.html?lang={lang}")
     fails.check(until(page, "() => [...document.querySelectorAll('.tw-agree__text a, .tw-foot a')]"
                             ".every(a => a.getAttribute('href'))", timeout=8000),
-                f"{tag} the platform never filled in the Terms / Privacy / Login links")
+                f"{tag} IT's code never filled in the Terms / Privacy / Login links")
     tap_targets(page, tag, "the header", fails, ".tw-hdr")
     page.evaluate("TW.openForm()")
     settled(page, "#tw-signup")
     tap_targets(page, tag, "the pop-up with the platform's links", fails, "#tw-signup")
     ctx.close()
 
-    # The two result modals: success (button waits for a click) and the
-    # reCAPTCHA refusal. Both are fully on screen and their button is >= 24px.
-    for name, state, sel in (("success", {}, "#pl-ok"),
-                             ("recaptcha", {"recaptcha_ok": False}, "#pl-rc")):
+    # IT's two result modals: success (their button waits for a click) and the
+    # reCAPTCHA refusal. Both are fully on screen.
+    for name, state, sel, card in (("success", {}, ".success-modal", ".success-modal__card"),
+                                   ("recaptcha", {"recaptcha_ok": False}, ".modal__wrap", ".modal")):
         tag = f"[{where} {langs[0]} {name} modal]"
-        ctx = context(**state)
+        ctx, st = context(**state)
         page = ctx.new_page()
         page.goto(f"{base}/index.html?lang={langs[0]}")
+        until(page, "() => typeof grecaptcha !== 'undefined'", timeout=8000)
         page.evaluate("TW.openForm()")
         settled(page, "#tw-signup")
         page.fill("#tw-email", "player@example.com")
         page.fill("#tw-password", "Sup3rSecret!")
         page.click('.tw-cta[type="submit"]')
-        page.wait_for_selector(f"{sel}[open]", timeout=8000)
-        settled(page, sel)
-        inside = page.evaluate("""(sel) => {
-            const r = document.querySelector(sel + ' .tw-card').getBoundingClientRect();
-            return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }""", sel)
-        fails.check(inside, f"{tag} the card does not fit the viewport")
-        tap_targets(page, tag, f"the {name} modal", fails, sel)
+        fails.check(until(page, "(sel) => document.querySelector(sel).classList.contains('active')",
+                          sel, timeout=8000), f"{tag} did not open")
+        fails.check(fits(page, card), f"{tag} the card does not fit the viewport")
+        tap_targets_it(page, tag, f"the {name} modal", fails, sel, [])
+        fails.check(not page.evaluate("document.getElementById('tw-signup').open"),
+                    f"{tag} the pop-up is still open behind it")
         ctx.close()
 
     for lang in langs:
-        tag = f"[{where} {lang} unavailable]"
-        ctx = context(active=False)
+        tag = f"[{where} {lang} page disabled]"
+        ctx, st = context(active=False)
         page = ctx.new_page()
         page.goto(f"{base}/index.html?lang={lang}")
-        page.wait_for_selector("#pl-off[open]", timeout=8000)
-        settled(page, "#pl-off")
-        fails.check(page.locator(".pl-off__mail").count() == 1,
-                    f"{tag} the card has no mailto link to measure")
-        tap_targets(page, tag, "the unavailable card", fails, "#pl-off")
+        fails.check(until(page, "() => document.querySelector('.disabled-modal').classList.contains('active')"
+                                " && !!document.querySelector('.mail-link').textContent", timeout=8000),
+                    f"{tag} IT's modal did not open with the support address")
+        fails.check(page.get_attribute(".mail-link", "href") == "mailto:support@top-win.com",
+                    f"{tag} the support address is not support@top-win.com")
+        fails.check(fits(page, ".modal-content"), f"{tag} the card does not fit the viewport")
+        # IT's .mail-link is a 20px-high line of text: the one known offender.
+        tap_targets_it(page, tag, "IT's page-disabled modal", fails, ".disabled-modal", ["mail-link"])
         ctx.close()
 
 
@@ -330,8 +340,6 @@ def main() -> int:
         for where, w, h in VIEWPORTS:
             for lang in langs:
                 ctx = browser.new_context(viewport={"width": w, "height": h})
-                ctx.add_init_script(INJECT % json.dumps(
-                    {"dev": {"id": None, "email_registration": "", "landing": ""}}))
                 state = stubmod.new_state()
                 stubmod.install(ctx, state, [f"http://127.0.0.1:{port}"])
                 page = ctx.new_page()
@@ -341,7 +349,7 @@ def main() -> int:
                 page.on("pageerror", lambda e, n=noise: n.append(f"pageerror: {e}"))
 
                 page.goto(f"http://127.0.0.1:{port}/index.html?lang={lang}")
-                page.wait_for_timeout(500)
+                page.wait_for_timeout(1700)   # IT's main.js starts 1s late on localhost, then the stub answers
 
                 run_page(page, where, lang, fails)
                 if campaign_check:
@@ -357,6 +365,11 @@ def main() -> int:
 
     server.shutdown()
 
+    if KNOWN_IT:
+        print(f"smoke: {len(set(KNOWN_IT))} known deviation(s) of IT's own markup (decision 25, not fixed):")
+        for k in dict.fromkeys(KNOWN_IT):
+            print("  " + k)
+
     if fails:
         print(f"smoke: {len(fails)} failure(s)\n")
         for f in fails:
@@ -364,7 +377,7 @@ def main() -> int:
         return 1
 
     print(f"smoke: {len(VIEWPORTS)} viewport(s) x {len(langs)} language(s), "
-          "platform links and the unavailable card included, all clean")
+          "IT's modals and links included, all clean")
     return 0
 
 

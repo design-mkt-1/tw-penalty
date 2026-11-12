@@ -577,6 +577,9 @@
   color: var(--green-on-light);
   font-weight: var(--fw-semi);
   text-decoration: underline;
+  /* v1.0.22: a link that wraps leaves its last word alone on a line, 22px wide
+     under the 24px target. */
+  white-space: nowrap;
 }
 
 
