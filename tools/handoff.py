@@ -12,13 +12,21 @@ party -- is the one this repo's .gitignore already carries a comment about.
 
 The zip is what IT uploads: open index.html from any static server, no build
 step, no runtime dependency, no third-party request. README-IT.md goes in with
-it and says what still has to be wired.
+it and says what still has to be wired. image.jpg, at the archive root, is a
+screenshot of the landing (1440 wide, first screen, ua): IT's own reference
+archive carries one and its landing API has a `path_to_image` field.
 """
 
 import argparse
 import datetime as dt
+import functools
+import http.server
 import re
+import socketserver
+import struct
 import sys
+import tempfile
+import threading
 import zipfile
 from pathlib import Path
 
@@ -40,6 +48,12 @@ NEVER = ("tools", "docs", "raw", ".git", ".github", ".claude")
 SKIP_FILES = ("campaign/smoke.py",)
 SKIP_DIRS = ("__pycache__",)
 
+# The preview screenshot every archive carries (decision 22).
+IMAGE_NAME = "image.jpg"
+IMAGE_WIDTH, IMAGE_HEIGHT = 1440, 900
+IMAGE_LANG = "ua"
+IMAGE_MAX_BYTES = 500 * 1024
+
 
 def allowlist():
     """The paths the Pages build stages, read out of the workflow."""
@@ -55,6 +69,108 @@ def allowlist():
     return names
 
 
+def staged_files(names):
+    """(absolute path, archive path) for every file the allowlist ships."""
+    out = []
+    for entry in names:
+        path = ROOT / entry
+        if not path.exists():
+            print(f"handoff: {entry} is in the workflow but not in the repo", file=sys.stderr)
+            continue
+        if path.is_file():
+            out.append((path, entry))
+            continue
+        for f in sorted(path.rglob("*")):
+            if not f.is_file():
+                continue
+            rel = f.relative_to(ROOT).as_posix()
+            if rel in SKIP_FILES or any(d in f.parts for d in SKIP_DIRS):
+                continue
+            out.append((f, rel))
+    return out
+
+
+def jpeg_width(data: bytes) -> int:
+    """Width from the JPEG's SOF marker; 0 when this is not a JPEG."""
+    if data[:3] != b"\xff\xd8\xff":
+        return 0
+    i = 2
+    while i + 9 < len(data):
+        if data[i] != 0xFF:
+            i += 1
+            continue
+        marker = data[i + 1]
+        if marker in (0xD8, 0x01) or 0xD0 <= marker <= 0xD7:
+            i += 2
+            continue
+        (length,) = struct.unpack(">H", data[i + 2:i + 4])
+        if marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7,
+                      0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
+            return struct.unpack(">H", data[i + 7:i + 9])[0]
+        i += 2 + length
+    return 0
+
+
+def preview_image(files):
+    """Screenshot the landing exactly as the archive will serve it.
+
+    The staged files are copied into a temp directory and served from loopback,
+    so the shot shows what IT's server will show -- and a file missing from the
+    allowlist is missing from the picture. Anything that is not loopback is
+    aborted: no request reaches IT's API, ipify or Google. With no config.json
+    the page runs its demo path on localhost, as tools/smoke.py relies on.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        sys.exit("handoff: playwright is not installed, so image.jpg cannot be made "
+                 "and an archive without it is not shipped.\n"
+                 "  python -m pip install playwright\n"
+                 "  python -m playwright install chromium")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        site = Path(tmp)
+        for src, rel in files:
+            dest = site / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(src.read_bytes())
+
+        class Quiet(socketserver.TCPServer):
+            allow_reuse_address = True
+
+            def handle_error(self, request, client_address):
+                pass
+
+        class Silent(http.server.SimpleHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+        server = Quiet(("127.0.0.1", 0), functools.partial(Silent, directory=str(site)))
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        port = server.server_address[1]
+
+        try:
+            with sync_playwright() as pw:
+                browser = pw.chromium.launch()
+                page = browser.new_page(viewport={"width": IMAGE_WIDTH, "height": IMAGE_HEIGHT})
+                page.route("**/*", lambda r: r.continue_()
+                           if r.request.url.startswith(f"http://127.0.0.1:{port}/")
+                           else r.abort())
+                page.goto(f"http://127.0.0.1:{port}/index.html?lang={IMAGE_LANG}",
+                          wait_until="networkidle")
+                page.evaluate("document.fonts.ready")
+                page.wait_for_timeout(800)          # entrance motion settles
+                data = b""
+                for quality in (85, 75, 65, 55):
+                    data = page.screenshot(type="jpeg", quality=quality)
+                    if len(data) <= IMAGE_MAX_BYTES:
+                        break
+                browser.close()
+        finally:
+            server.shutdown()
+    return data
+
+
 README = """# {name} — for whoever hosts this
 
 A static landing page. No build step, no server-side code, no runtime
@@ -63,6 +179,9 @@ dependency. It talks to one platform, IT's registration API, through
 Content-Security-Policy `<meta>` in `index.html`: IT's template has none, and
 this page follows it. Upload the contents of this archive to any web server or
 object store and open `index.html`.
+
+`image.jpg` is the landing's preview screenshot (1440 wide, first screen,
+Ukrainian). The page does not load it.
 
 Everything is referenced with RELATIVE paths, so it runs from the root of a
 domain or from a subfolder without an edit.
@@ -134,23 +253,22 @@ step: the same requests, headers, order and body. Its flow:
    `ua`, `ru` or `en`. `promocode` is the one your landing response returns:
    the promo code is set by you, on the landing in your CRM, and nowhere in
    this archive.
-4. Success -- PENDING YOUR ANSWER: which hand-off is right for TopWin? Today:
-   `response.data.accessToken` and `response.data.redirectUrl` come
-   back. The token is POSTed to `<mirror>/api/welcome` as `tmpToken`, where
-   `<mirror>` is the origin of `redirectUrl`, with `redirect` = `redirectUrl`
-   plus the page's query string. Without `redirectUrl` the fallback is
-   `<casino>/api/welcome`, with `redirect=<casino>/<lang>/<redirect_link>?<page
-   query>`, where `<casino>` is the host of `data.rules`. The confirmation
-   screen that shows a login and a password is never shown. Your template
-   has only the fallback path, behind a button the visitor clicks.
-5. Errors: `{{ errors: [msg] }}`. "already registered" and anything mentioning
-   reCAPTCHA get their own translated message; everything else is the generic
-   "could not send".
+4. Success -- as in your template: `response.data.accessToken` is read
+   (`redirectUrl` is not). A success modal opens, in TopWin's style, in
+   ua / ru / en. When the visitor clicks its button, the token is POSTed to
+   `<casino>/api/welcome` as `tmpToken`, with `redirect=<casino>/<lang>/
+   <redirect_link>?<page query>`, where `<casino>` is the host of
+   `data.rules`. The confirmation screen that shows a login and a password is
+   never shown.
+5. Errors: `{{ errors: [msg] }}`. "already registered" gets its own translated
+   message; anything mentioning reCAPTCHA gets its own translated message and
+   a separate modal; everything else is the generic "could not send". The
+   server's own text is never shown.
 
 **Development.** On localhost, 127.0.0.1 or `https://land-crm...` the page uses
-`campaign.js` -> `platform.dev` once it holds a TopWin dev landing. It is
-EMPTY: please give us a TopWin dev landing (id, landing URL, registration
-URL). Until then localhost runs the demo path and land-crm reads
+`campaign.js` -> `platform.dev`, which holds your template's own TEMP_CONFIG
+(landing id 8 and its two URLs). A real TopWin dev landing replaces it when
+you issue one. Emptied, localhost runs the demo path and land-crm reads
 `config.json`. It never reaches a visitor on the live domain.
 
 **Production.** The page fetches `config.json` from next to `index.html` (in
@@ -252,6 +370,14 @@ def campaign_value(key):
     return value.rstrip(",").strip("'\"")
 
 
+def shown(path: Path) -> str:
+    """Repo-relative when inside the repo, absolute when --out points elsewhere."""
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default="dist", help="where to write the zip (default: dist)")
@@ -270,40 +396,37 @@ def main() -> int:
         passthrough=passthrough,
     )
 
+    files = staged_files(allowlist())
+    image = preview_image(files)
+
     staged = []
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-        for entry in allowlist():
-            path = ROOT / entry
-            if not path.exists():
-                print(f"handoff: {entry} is in the workflow but not in the repo", file=sys.stderr)
-                continue
-            if path.is_file():
-                z.write(path, entry)
-                staged.append(entry)
-            else:
-                for f in sorted(path.rglob("*")):
-                    if not f.is_file():
-                        continue
-                    rel = f.relative_to(ROOT).as_posix()
-                    if rel in SKIP_FILES or any(d in f.parts for d in SKIP_DIRS):
-                        continue
-                    z.write(f, rel)
-                    staged.append(rel)
+        for path, rel in files:
+            z.write(path, rel)
+            staged.append(rel)
         z.writestr("README-IT.md", readme)
         staged.append("README-IT.md")
+        z.writestr(IMAGE_NAME, image)
+        staged.append(IMAGE_NAME)
 
     # The check. Cheap, and it is the whole reason to have a script rather than
     # a zip command someone types from memory once a quarter.
     with zipfile.ZipFile(zip_path) as z:
         names = z.namelist()
     assert "index.html" in names, "handoff: the archive has no index.html"
+    assert IMAGE_NAME in names, f"handoff: the archive has no {IMAGE_NAME}"
+    with zipfile.ZipFile(zip_path) as z:
+        width = jpeg_width(z.read(IMAGE_NAME))
+    assert width == IMAGE_WIDTH, (f"handoff: {IMAGE_NAME} is not a JPEG "
+                                  f"{IMAGE_WIDTH} px wide (got {width})")
     leaked = [n for n in names if n.split("/")[0] in NEVER
               or n in SKIP_FILES or any(d in n.split("/") for d in SKIP_DIRS)]
     assert not leaked, "handoff: the archive contains " + ", ".join(leaked)
 
     size = zip_path.stat().st_size
-    print(f"handoff: {zip_path.relative_to(ROOT).as_posix()} "
-          f"— {len(names)} file(s), {size / 1024:.0f} kB")
+    print(f"handoff: {shown(zip_path)} "
+          f"— {len(names)} file(s), {size / 1024:.0f} kB, "
+          f"{IMAGE_NAME} {len(image) / 1024:.0f} kB")
     print("         staged: " + ", ".join(allowlist()))
     return 0
 

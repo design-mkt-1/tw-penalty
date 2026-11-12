@@ -20,6 +20,7 @@ calls it once per viewport per language.
 
 import functools
 import http.server
+import json
 import socketserver
 import sys
 import threading
@@ -33,6 +34,8 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import platform_stub as stubmod          # noqa: E402  (the stub the platform test uses)
 
 VIEWPORTS = [("desktop", 1440, 900), ("mobile", 375, 812)]
 
@@ -66,6 +69,85 @@ def languages():
         return ["ua"]
     chunk = text[start:text.find("]", start)]
     return [bit.strip().strip("'\"") for bit in chunk.split("[")[1].split(",") if bit.strip()]
+
+
+# Read by the page as TW_CAMPAIGN is assigned, exactly as tools/platform_test.py
+# does it: the platform runs against the stub, never against the real API.
+# campaign.js ships IT's TEMP_CONFIG as platform.dev (decision 24), a real host:
+# EVERY context here replaces it, either with the stub's (run_platform) or with
+# an empty one, which is the demo path with no request (the plain run), and
+# every context is routed through the stub so anything else that leaves the
+# page is aborted and fails the run.
+INJECT = '''(() => {
+  const over = %s;
+  let c;
+  Object.defineProperty(window, 'TW_CAMPAIGN', {
+    configurable: true,
+    get() { return c; },
+    set(v) { c = v; if (v) { v.platform = Object.assign(v.platform || {}, over); } }
+  });
+})();'''
+
+# Decision 18: every control has a hit area of at least 24x24 CSS px. The hit
+# area is the element's own box, or -- where the visible control is smaller and
+# a pseudo-element carries the target -- whatever still resolves to the element
+# 11.5px either side of its centre. Both are checked with elementFromPoint, so a
+# control covered by something else fails as well. Returns one line per failure.
+TAP_TARGETS = '''(root) => {
+  const NEED = 24, HALF = NEED / 2 - 0.5;
+  const scope = root ? document.querySelector(root) : document;
+  if (!scope) return ['no element matches ' + root];
+  const label = el => (el.className && el.className.baseVal === undefined && el.className) || el.tagName;
+  const bad = [];
+  for (const el of scope.querySelectorAll(
+      'a[href], button, input, select, textarea, [role=option], [role=tab]')) {
+    let rects = [...el.getClientRects()].filter(r => r.width > 0 && r.height > 0);
+    if (!rects.length) continue;
+    if (rects.every(r => r.width >= NEED && r.height >= NEED)) continue;
+    const first = rects[0];
+    if (first.top < 0 || first.bottom > innerHeight || first.left < 0 || first.right > innerWidth) {
+      el.scrollIntoView({block: 'center', inline: 'center'});   // elementFromPoint needs it on screen
+      rects = [...el.getClientRects()].filter(r => r.width > 0 && r.height > 0);
+    }
+    for (const t of rects) {
+      if (t.width >= NEED && t.height >= NEED) continue;
+      const cx = t.left + t.width / 2, cy = t.top + t.height / 2;
+      const dx = t.width >= NEED ? 0 : HALF, dy = t.height >= NEED ? 0 : HALF;
+      const hit = (x, y) => { const e = document.elementFromPoint(x, y);
+                              return !!e && (e === el || el.contains(e)); };
+      const ok = hit(cx - dx, cy - dy) && hit(cx + dx, cy + dy)
+              && hit(cx - dx, cy + dy) && hit(cx + dx, cy - dy);
+      if (!ok) bad.push(label(el) + ' ' + Math.round(t.width) + 'x' + Math.round(t.height));
+    }
+  }
+  return bad;
+}'''
+
+
+def tap_targets(page, tag, what, fails, root=None):
+    small = page.evaluate(TAP_TARGETS, root)
+    fails.check(not small, f"{tag} tap target(s) under 24px in {what}: {'; '.join(small)}")
+
+
+def until(page, js, arg=None, timeout=5000, what="the page"):
+    """Poll `js` (an arrow function) until it returns true. Not wait_for_function:
+    that evaluates its predicate as a string, which the page's own CSP refuses
+    (no 'unsafe-eval'); page.evaluate goes through the debugger and is not
+    subject to it. Returns False on timeout instead of raising, so the caller
+    reports it as a failure with the page's name on it."""
+    waited = 0
+    while waited <= timeout:
+        if page.evaluate(js, arg):
+            return True
+        page.wait_for_timeout(50)
+        waited += 50
+    return False
+
+
+def settled(page, selector):
+    """The element has stopped moving: no running animation or transition."""
+    return until(page, "(sel) => document.querySelector(sel).getAnimations({subtree: true}).length === 0",
+                 selector)
 
 
 class Failures(list):
@@ -126,6 +208,11 @@ def run_page(page, where, lang, fails):
     page.wait_for_timeout(350)
     fails.check(page.eval_on_selector("#tw-signup", "el => el.open"),
                 f"{tag} TW.openForm() did not open the dialog")
+    # The pop-up's own controls, measured while it is open. They used to be
+    # measured only by accident, when a slow runner had not yet finished the
+    # dialog's exit transition (see the wait after Escape below).
+    settled(page, "#tw-signup")
+    tap_targets(page, tag, "the registration pop-up", fails, "#tw-signup")
     fails.check(page.evaluate(
         "document.getElementById('tw-signup').contains(document.activeElement)"),
         f"{tag} focus did not move into the open dialog")
@@ -141,17 +228,80 @@ def run_page(page, where, lang, fails):
         page.evaluate(f"TW.setLang('{lang}')")
 
     page.keyboard.press("Escape")
-    page.wait_for_timeout(350)
-    fails.check(not page.eval_on_selector("#tw-signup", "el => el.open"),
+    fails.check(page.evaluate("(async () => { await new Promise(r => setTimeout(r, 50));"
+                              " return !document.getElementById('tw-signup').open; })()"),
                 f"{tag} Escape did not close the dialog")
+    # Wait for the exit transition to END, not for a fixed 350ms. The closing
+    # dialog keeps display:flex until its 160ms transition completes (display is
+    # allow-discrete), and on a loaded CI runner that is later than 350ms. The
+    # old fixed wait then measured the half-closed pop-up's controls as page
+    # content: email input 390x19, eye 20x20. Passed locally, flaked on GitHub.
+    fails.check(until(page, "() => getComputedStyle(document.getElementById('tw-signup')).display === 'none'"),
+                f"{tag} the dialog is still displayed 5s after Escape")
 
-    # 9. Every tap target is at least 24x24. WCAG 2.2 target size (minimum).
-    small = page.evaluate("""() => [...document.querySelectorAll(
-        'a[href], button, input, [role=option], [role=tab]')]
-        .filter(el => { const r = el.getBoundingClientRect();
-                        return r.width > 0 && (r.width < 24 || r.height < 24); })
-        .map(el => (el.className || el.tagName) + ` ${Math.round(el.getBoundingClientRect().width)}x${Math.round(el.getBoundingClientRect().height)}`)""")
-    fails.check(not small, f"{tag} tap target(s) under 24px: {'; '.join(small)}")
+    # 9. Every tap target is at least 24x24. WCAG 2.2 target size (minimum),
+    #    decision 18. The pop-up was measured above while open; this is the page.
+    tap_targets(page, tag, "the page", fails)
+
+
+def run_platform(browser, base, where, w, h, langs, fails):
+    """The shell as the platform fills it in, against the stub: not one real
+    request. Two states the plain run cannot reach -- the Terms / Privacy / Login
+    links, which exist only once the landing response supplies them, and the
+    "unavailable" card of an inactive landing."""
+    def context(**state):
+        ctx = browser.new_context(viewport={"width": w, "height": h})
+        ctx.add_init_script(INJECT % json.dumps({"dev": stubmod.DEV}))
+        stubmod.install(ctx, stubmod.new_state(**state), [base])
+        return ctx
+
+    lang = langs[0]
+    tag = f"[{where} {lang} platform]"
+    ctx = context()
+    page = ctx.new_page()
+    page.goto(f"{base}/index.html?lang={lang}")
+    fails.check(until(page, "() => [...document.querySelectorAll('.tw-agree__text a, .tw-foot a')]"
+                            ".every(a => a.getAttribute('href'))", timeout=8000),
+                f"{tag} the platform never filled in the Terms / Privacy / Login links")
+    tap_targets(page, tag, "the header", fails, ".tw-hdr")
+    page.evaluate("TW.openForm()")
+    settled(page, "#tw-signup")
+    tap_targets(page, tag, "the pop-up with the platform's links", fails, "#tw-signup")
+    ctx.close()
+
+    # The two result modals: success (button waits for a click) and the
+    # reCAPTCHA refusal. Both are fully on screen and their button is >= 24px.
+    for name, state, sel in (("success", {}, "#pl-ok"),
+                             ("recaptcha", {"recaptcha_ok": False}, "#pl-rc")):
+        tag = f"[{where} {langs[0]} {name} modal]"
+        ctx = context(**state)
+        page = ctx.new_page()
+        page.goto(f"{base}/index.html?lang={langs[0]}")
+        page.evaluate("TW.openForm()")
+        settled(page, "#tw-signup")
+        page.fill("#tw-email", "player@example.com")
+        page.fill("#tw-password", "Sup3rSecret!")
+        page.click('.tw-cta[type="submit"]')
+        page.wait_for_selector(f"{sel}[open]", timeout=8000)
+        settled(page, sel)
+        inside = page.evaluate("""(sel) => {
+            const r = document.querySelector(sel + ' .tw-card').getBoundingClientRect();
+            return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight; }""", sel)
+        fails.check(inside, f"{tag} the card does not fit the viewport")
+        tap_targets(page, tag, f"the {name} modal", fails, sel)
+        ctx.close()
+
+    for lang in langs:
+        tag = f"[{where} {lang} unavailable]"
+        ctx = context(active=False)
+        page = ctx.new_page()
+        page.goto(f"{base}/index.html?lang={lang}")
+        page.wait_for_selector("#pl-off[open]", timeout=8000)
+        settled(page, "#pl-off")
+        fails.check(page.locator(".pl-off__mail").count() == 1,
+                    f"{tag} the card has no mailto link to measure")
+        tap_targets(page, tag, "the unavailable card", fails, "#pl-off")
+        ctx.close()
 
 
 def main() -> int:
@@ -179,7 +329,12 @@ def main() -> int:
         browser = pw.chromium.launch(headless=not headed)
         for where, w, h in VIEWPORTS:
             for lang in langs:
-                page = browser.new_page(viewport={"width": w, "height": h})
+                ctx = browser.new_context(viewport={"width": w, "height": h})
+                ctx.add_init_script(INJECT % json.dumps(
+                    {"dev": {"id": None, "email_registration": "", "landing": ""}}))
+                state = stubmod.new_state()
+                stubmod.install(ctx, state, [f"http://127.0.0.1:{port}"])
+                page = ctx.new_page()
                 noise = []
                 page.on("console", lambda m, n=noise: n.append(f"{m.type}: {m.text}")
                         if m.type in ("error", "warning") else None)
@@ -194,7 +349,10 @@ def main() -> int:
 
                 real = [n for n in noise if not any(ok in n for ok in CONSOLE_OK)]
                 fails.check(not real, f"[{where} {lang}] console: {' | '.join(real)}")
+                fails.check(not state["leaks"], f"[{where} {lang}] left the page: {state['leaks']}")
                 page.close()
+                ctx.close()
+            run_platform(browser, f"http://127.0.0.1:{port}", where, w, h, langs, fails)
         browser.close()
 
     server.shutdown()
@@ -205,7 +363,8 @@ def main() -> int:
             print("  " + f)
         return 1
 
-    print(f"smoke: {len(VIEWPORTS)} viewport(s) x {len(langs)} language(s), all clean")
+    print(f"smoke: {len(VIEWPORTS)} viewport(s) x {len(langs)} language(s), "
+          "platform links and the unavailable card included, all clean")
     return 0
 
 
